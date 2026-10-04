@@ -161,6 +161,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   const [isGameModeCollapsed, setIsGameModeCollapsed] = useState<boolean>(false)
   const [selectedLivePoint, setSelectedLivePoint] = useState<number>(0) // 0-based point index for live mode
   const [isStatsPanelOpen, setIsStatsPanelOpen] = useState<boolean>(false)
+  const [notePopupPlayerId, setNotePopupPlayerId] = useState<string | null>(null)
 
   const [selectedSheetId, setSelectedSheetId] = useState<string>(() => {
     // Pick first active sheet if available, otherwise first sheet
@@ -1927,11 +1928,12 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                       </div>
 
                       {/* Column headers */}
-                      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 items-center px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                         <span>Player</span>
-                        <span className="w-16 text-center text-blue-600 dark:text-blue-400">D-Block</span>
-                        <span className="w-16 text-center text-amber-600 dark:text-amber-400">T/A</span>
-                        <span className="w-16 text-center text-rose-600 dark:text-rose-400">Drop</span>
+                        <span className="w-20 text-center text-blue-600 dark:text-blue-400">D-Block</span>
+                        <span className="w-20 text-center text-amber-600 dark:text-amber-400">T/A</span>
+                        <span className="w-20 text-center text-rose-600 dark:text-rose-400">Drop</span>
+                        <span className="w-8 text-center">📝</span>
                       </div>
 
                       {currentLivePointObj.playerIds.length === 0 ? (
@@ -1942,9 +1944,10 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                           if (!p) return null
                           const pStats = currentLivePointObj.playerStats?.[pid] ?? { dBlocks: 0, throwaways: 0, drops: 0 }
                           const note = displayData.playerNotes?.[pid] ?? ""
+                          const isNoteOpen = notePopupPlayerId === pid
                           return (
-                            <div key={pid} className="bg-card border border-border rounded-lg px-2 py-1.5 space-y-1.5">
-                              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center">
+                            <div key={pid} className="relative bg-card border border-border rounded-lg px-2 py-1.5">
+                              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 items-center">
                                 <span className="text-xs font-medium truncate">
                                   {p.displayName}
                                 </span>
@@ -1980,15 +1983,43 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                     </div>
                                   )
                                 })}
+                                {/* Note icon button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setNotePopupPlayerId(isNoteOpen ? null : pid)}
+                                  title={note ? `Note: ${note}` : "Add coaching note"}
+                                  className={`w-8 h-8 rounded flex items-center justify-center text-base border transition-colors ${
+                                    note
+                                      ? "border-violet-400 bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                                      : "border-border text-muted-foreground hover:border-violet-400 hover:bg-violet-500/10 hover:text-violet-600"
+                                  }`}
+                                >
+                                  📝
+                                </button>
                               </div>
-                              <textarea
-                                value={note}
-                                onChange={(e) => setPlayerNote(pid, e.target.value)}
-                                placeholder={`Coaching note for ${p.displayName}…`}
-                                rows={1}
-                                className="w-full text-xs px-2 py-1 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-violet-400 resize-none"
-                                style={{ minHeight: "2rem", fieldSizing: "content" } as React.CSSProperties}
-                              />
+
+                              {/* Inline note popup */}
+                              {isNoteOpen && (
+                                <div className="mt-1.5 rounded-md border border-violet-400/60 bg-violet-500/5 p-2 space-y-1.5">
+                                  <textarea
+                                    value={note}
+                                    onChange={(e) => setPlayerNote(pid, e.target.value)}
+                                    placeholder={`Coaching note for ${p.displayName}…`}
+                                    rows={3}
+                                    autoFocus
+                                    className="w-full text-xs px-2 py-1 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-violet-400 resize-none"
+                                  />
+                                  <div className="flex justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => setNotePopupPlayerId(null)}
+                                      className="px-2.5 py-1 text-xs font-medium rounded bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                                    >
+                                      Done
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )
                         })
