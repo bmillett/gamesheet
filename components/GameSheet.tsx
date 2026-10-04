@@ -1177,10 +1177,11 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               </div>
             )}
 
-            {/* ── Metadata & Configuration Bar ─────────────────────────── */}
-            <div className="flex gap-3 p-3 rounded-lg border border-border bg-card print:hidden">
-              {/* Left: all inputs + action buttons */}
-              <div className="flex flex-wrap gap-3 items-end flex-1 min-w-0">
+            {/* ── Metadata & Configuration Bar + Live Mode Button ──────── */}
+            <div className="flex gap-3 items-stretch print:hidden">
+
+              {/* Metadata panel */}
+              <div className="flex flex-wrap gap-3 items-end p-3 rounded-lg border border-border bg-card flex-1 min-w-0">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted-foreground font-medium">Sheet Title / Label</label>
                 <input
@@ -1320,20 +1321,20 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                   🖨 Print
                 </button>
               </div>
-              </div>{/* end left column */}
+              </div>{/* end metadata panel */}
 
-              {/* Right: full-height Live Mode button */}
+              {/* Live Mode square button — own panel */}
               <button
                 type="button"
                 onClick={() => setGameMode((g) => !g)}
-                className={`self-stretch px-4 rounded-md text-sm font-bold transition-all shadow-sm flex flex-col items-center justify-center gap-1 min-w-[72px] ${
+                className={`aspect-square w-24 shrink-0 rounded-lg border-2 font-bold transition-all shadow-sm flex flex-col items-center justify-center gap-1.5 ${
                   gameMode
-                    ? "bg-amber-600 text-white hover:bg-amber-700 ring-2 ring-amber-400"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                    ? "bg-amber-600 border-amber-500 text-white hover:bg-amber-700 ring-2 ring-amber-400"
+                    : "bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700"
                 }`}
               >
-                <span className="text-lg leading-none">{gameMode ? "📋" : "⚡"}</span>
-                <span className="text-xs font-bold leading-tight text-center">{gameMode ? "Exit Live" : "Live Mode"}</span>
+                <span className="text-2xl leading-none">{gameMode ? "📋" : "⚡"}</span>
+                <span className="text-xs font-bold leading-tight text-center px-1">{gameMode ? "Exit Live" : "Live Mode"}</span>
               </button>
             </div>
 
