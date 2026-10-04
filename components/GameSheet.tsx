@@ -985,16 +985,6 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
 
           <div className="flex items-center gap-2">
             <button
-                onClick={() => setGameMode((g) => !g)}
-                className={`px-4 py-2.5 min-h-[44px] rounded-md text-sm font-bold transition-all shadow-sm flex items-center gap-1.5 ${
-                  gameMode
-                    ? "bg-amber-600 text-white hover:bg-amber-700 ring-2 ring-amber-400"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700"
-                }`}
-              >
-                {gameMode ? "📋 Exit Live Game Mode" : "⚡ Live Game Mode (Sideline)"}
-              </button>
-            <button
               onClick={handleCreateBlank}
               disabled={createPending}
               className="px-3 py-1.5 rounded-md text-xs font-medium border border-border text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
@@ -1326,6 +1316,17 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                   className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
                 >
                   🖨 Print
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGameMode((g) => !g)}
+                  className={`px-4 py-2 rounded-md text-sm font-bold transition-all shadow-sm ${
+                    gameMode
+                      ? "bg-amber-600 text-white hover:bg-amber-700 ring-2 ring-amber-400"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700"
+                  }`}
+                >
+                  {gameMode ? "📋 Exit Live" : "⚡ Live Mode"}
                 </button>
               </div>
             </div>
