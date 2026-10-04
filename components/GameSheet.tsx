@@ -209,6 +209,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   const [renamingPresetId, setRenamingPresetId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState("")
   const [isGridCollapsed, setIsGridCollapsed] = useState(false)
+  const [gridWasCollapsedBeforeLive, setGridWasCollapsedBeforeLive] = useState(false)
 
   // Cache team roster locally for offline access
   useEffect(() => {
@@ -1326,7 +1327,16 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               {/* Live Mode square button — own panel */}
               <button
                 type="button"
-                onClick={() => setGameMode((g) => !g)}
+                onClick={() => {
+                  const entering = !gameMode
+                  if (entering) {
+                    setGridWasCollapsedBeforeLive(isGridCollapsed)
+                    setIsGridCollapsed(true)
+                  } else {
+                    setIsGridCollapsed(gridWasCollapsedBeforeLive)
+                  }
+                  setGameMode(entering)
+                }}
                 className={`aspect-square w-24 shrink-0 rounded-lg border-2 font-bold transition-all shadow-sm flex flex-col items-center justify-center gap-1.5 ${
                   gameMode
                     ? "bg-amber-600 border-amber-500 text-white hover:bg-amber-700 ring-2 ring-amber-400"
