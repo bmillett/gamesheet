@@ -7,7 +7,7 @@
  * into per-tournament records and a season-wide player leaderboard.
  */
 
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import type { GameSheetData, GameSheetPoint, GameSheetRow, RosterPlayer } from "@/types/types"
 
 // ---------------------------------------------------------------------------
@@ -36,6 +36,8 @@ interface PlayerSeasonStats {
   dBlocks: number
   throwaways: number
   drops: number
+  /** Notes keyed by game label (opponent / sheet title) */
+  notes: { gameLabel: string; note: string }[]
 }
 
 interface TournamentGroup {
@@ -121,6 +123,7 @@ function aggregatePlayerStats(
       dBlocks: 0,
       throwaways: 0,
       drops: 0,
+      notes: [],
     })
   })
 
@@ -157,6 +160,7 @@ function aggregatePlayerStats(
             dBlocks: 0,
             throwaways: 0,
             drops: 0,
+            notes: [],
           })
         }
         const entry = statsMap.get(pid)!
@@ -184,6 +188,20 @@ function aggregatePlayerStats(
         })
       }
     })
+
+    // Collect per-player notes from this sheet
+    if (data.playerNotes) {
+      const gameLabel = sheet.sheet_data.customTitle?.trim()
+        || (sheet.opponent_name?.trim() ? `vs ${sheet.opponent_name.trim()}` : null)
+        || sheet.id.slice(0, 6)
+      Object.entries(data.playerNotes).forEach(([pid, note]) => {
+        if (!note.trim()) return
+        const entry = statsMap.get(pid)
+        if (entry) {
+          entry.notes.push({ gameLabel, note: note.trim() })
+        }
+      })
+    }
   })
 
   return Array.from(statsMap.values())
@@ -203,6 +221,7 @@ function pct(num: number, den: number): string {
 export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanelProps) {
   const gameStats = useMemo(() => sheets.map(deriveGameStats), [sheets])
   const playerStats = useMemo(() => aggregatePlayerStats(sheets, players), [sheets, players])
+  const [expandedNotePlayer, setExpandedNotePlayer] = useState<string | null>(null)
 
   // Group by tournament — null / "" → "Other Games"
   const tournamentGroups = useMemo<TournamentGroup[]>(() => {
@@ -428,25 +447,57 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                 </tr>
               </thead>
               <tbody>
-                {playerStats.map((ps, i) => (
-                  <tr key={ps.playerId} className={`border-b border-border/50 last:border-0 ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
-                    <td className="px-3 py-2 font-medium text-foreground">
-                      <span className="tabular-nums text-muted-foreground mr-1.5">
-                        {ps.jerseyNumber != null ? `#${ps.jerseyNumber}` : ""}
-                      </span>
-                      {ps.displayName}
-                      {ps.gender && (
-                        <span className="ml-1.5 text-xs text-muted-foreground">({ps.gender})</span>
+                {playerStats.map((ps, i) => {
+                  const isExpanded = expandedNotePlayer === ps.playerId
+                  const rowBg = i % 2 === 0 ? "" : "bg-muted/10"
+                  return (
+                    <React.Fragment key={ps.playerId}>
+                      <tr className={`border-b border-border/50 ${ps.notes.length > 0 && isExpanded ? "" : "last:border-0"} ${rowBg}`}>
+                        <td className="px-3 py-2 font-medium text-foreground">
+                          <span className="tabular-nums text-muted-foreground mr-1.5">
+                            {ps.jerseyNumber != null ? `#${ps.jerseyNumber}` : ""}
+                          </span>
+                          {ps.displayName}
+                          {ps.gender && (
+                            <span className="ml-1.5 text-xs text-muted-foreground">({ps.gender})</span>
+                          )}
+                          {ps.notes.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedNotePlayer(isExpanded ? null : ps.playerId)}
+                              className="ml-2 text-xs text-violet-600 dark:text-violet-400 hover:underline font-medium"
+                              title={isExpanded ? "Hide coaching notes" : "Show coaching notes"}
+                            >
+                              📝 {ps.notes.length} note{ps.notes.length !== 1 ? "s" : ""}
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center font-bold tabular-nums text-foreground">{ps.pointsPlayed}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.goals || "—"}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.assists || "—"}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.dBlocks || "—"}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.throwaways || "—"}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.drops || "—"}</td>
+                      </tr>
+                      {ps.notes.length > 0 && isExpanded && (
+                        <tr className={`border-b border-border/50 last:border-0 ${rowBg}`}>
+                          <td colSpan={7} className="px-4 py-2.5">
+                            <div className="space-y-1.5">
+                              {ps.notes.map(({ gameLabel, note }, ni) => (
+                                <div key={ni} className="flex gap-2 text-xs">
+                                  <span className="shrink-0 font-semibold text-violet-600 dark:text-violet-400 min-w-[6rem]">
+                                    {gameLabel}
+                                  </span>
+                                  <span className="text-foreground whitespace-pre-wrap">{note}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-3 py-2 text-center font-bold tabular-nums text-foreground">{ps.pointsPlayed}</td>
-                    <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.goals || "—"}</td>
-                    <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.assists || "—"}</td>
-                    <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.dBlocks || "—"}</td>
-                    <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.throwaways || "—"}</td>
-                    <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.drops || "—"}</td>
-                  </tr>
-                ))}
+                    </React.Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>

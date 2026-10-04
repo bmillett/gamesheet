@@ -794,6 +794,11 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     saveData({ ...displayData, points: pts })
   }
 
+  function setPlayerNote(playerId: string, note: string) {
+    const next = { ...displayData, playerNotes: { ...displayData.playerNotes, [playerId]: note } }
+    saveData(next)
+  }
+
   // Timeouts: 1st Half (0-2) and 2nd Half (0-2)
   const ourH1 = displayData.ourTimeoutsH1 ?? 0
   const ourH2 = displayData.ourTimeoutsH2 ?? 0
@@ -1704,6 +1709,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                 const isPlaying = currentLivePointObj.playerIds.includes(player.playerId)
                                 const playerPointsCount = getPlayerPointsPlayed(player.playerId)
                                 const isInjured = Boolean(data.injuredPlayerIds?.includes(player.playerId))
+                                const hasNote = Boolean(displayData.playerNotes?.[player.playerId]?.trim())
 
                                 return (
                                   <div
@@ -1731,6 +1737,16 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                     </button>
 
                                     <div className="flex items-center gap-1">
+                                      {/* Note indicator */}
+                                      {hasNote && (
+                                        <span
+                                          title={displayData.playerNotes![player.playerId]}
+                                          className="text-xs leading-none"
+                                        >
+                                          📝
+                                        </span>
+                                      )}
+
                                       {/* Injury toggle */}
                                       <button
                                         type="button"
@@ -1925,43 +1941,54 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                           const p = displayData.players.find((pl) => pl.playerId === pid)
                           if (!p) return null
                           const pStats = currentLivePointObj.playerStats?.[pid] ?? { dBlocks: 0, throwaways: 0, drops: 0 }
+                          const note = displayData.playerNotes?.[pid] ?? ""
                           return (
-                            <div key={pid} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center bg-card border border-border rounded-lg px-2 py-1.5">
-                              <span className="text-xs font-medium truncate">
-                                {p.displayName}
-                              </span>
-                              {(["dBlocks", "throwaways", "drops"] as (keyof PlayerPointStats)[]).map((stat, si) => {
-                                const colors = [
-                                  "border-blue-400 text-blue-700 dark:text-blue-300",
-                                  "border-amber-400 text-amber-700 dark:text-amber-300",
-                                  "border-rose-400 text-rose-700 dark:text-rose-300",
-                                ]
-                                const addColors = [
-                                  "bg-blue-500/10 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border-blue-400",
-                                  "bg-amber-500/10 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-400",
-                                  "bg-rose-500/10 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border-rose-400",
-                                ]
-                                return (
-                                  <div key={stat} className="flex items-center gap-1 w-20 justify-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, -1)}
-                                      disabled={pStats[stat] === 0}
-                                      className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed ${colors[si]} bg-transparent hover:bg-black/5`}
-                                    >
-                                      −
-                                    </button>
-                                    <span className={`w-6 text-center text-sm font-bold ${colors[si]}`}>{pStats[stat]}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, 1)}
-                                      className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center ${addColors[si]}`}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                )
-                              })}
+                            <div key={pid} className="bg-card border border-border rounded-lg px-2 py-1.5 space-y-1.5">
+                              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center">
+                                <span className="text-xs font-medium truncate">
+                                  {p.displayName}
+                                </span>
+                                {(["dBlocks", "throwaways", "drops"] as (keyof PlayerPointStats)[]).map((stat, si) => {
+                                  const colors = [
+                                    "border-blue-400 text-blue-700 dark:text-blue-300",
+                                    "border-amber-400 text-amber-700 dark:text-amber-300",
+                                    "border-rose-400 text-rose-700 dark:text-rose-300",
+                                  ]
+                                  const addColors = [
+                                    "bg-blue-500/10 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border-blue-400",
+                                    "bg-amber-500/10 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-400",
+                                    "bg-rose-500/10 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border-rose-400",
+                                  ]
+                                  return (
+                                    <div key={stat} className="flex items-center gap-1 w-20 justify-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, -1)}
+                                        disabled={pStats[stat] === 0}
+                                        className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed ${colors[si]} bg-transparent hover:bg-black/5`}
+                                      >
+                                        −
+                                      </button>
+                                      <span className={`w-6 text-center text-sm font-bold ${colors[si]}`}>{pStats[stat]}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, 1)}
+                                        className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center ${addColors[si]}`}
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              <textarea
+                                value={note}
+                                onChange={(e) => setPlayerNote(pid, e.target.value)}
+                                placeholder={`Coaching note for ${p.displayName}…`}
+                                rows={1}
+                                className="w-full text-xs px-2 py-1 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-violet-400 resize-none"
+                                style={{ minHeight: "2rem", fieldSizing: "content" } as React.CSSProperties}
+                              />
                             </div>
                           )
                         })

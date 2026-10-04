@@ -88,6 +88,7 @@ export interface GameSheetData {
   clientUpdatedAt?: number
   version?: number
   totalPoints?: number
+  playerNotes?: Record<string, string>
 }
 
 export interface GameSheetRow {
