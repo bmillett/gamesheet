@@ -1933,7 +1933,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                         <span className="w-20 text-center text-blue-600 dark:text-blue-400">D-Block</span>
                         <span className="w-20 text-center text-amber-600 dark:text-amber-400">T/A</span>
                         <span className="w-20 text-center text-rose-600 dark:text-rose-400">Drop</span>
-                        <span className="w-8 text-center">📝</span>
+                        <span className="w-12 text-center pl-2">Note</span>
                       </div>
 
                       {currentLivePointObj.playerIds.length === 0 ? (
@@ -1984,18 +1984,20 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                   )
                                 })}
                                 {/* Note icon button */}
-                                <button
-                                  type="button"
-                                  onClick={() => setNotePopupPlayerId(isNoteOpen ? null : pid)}
-                                  title={note ? `Note: ${note}` : "Add coaching note"}
-                                  className={`w-8 h-8 rounded flex items-center justify-center text-base border transition-colors ${
-                                    note
-                                      ? "border-violet-400 bg-violet-500/15 text-violet-700 dark:text-violet-300"
-                                      : "border-border text-muted-foreground hover:border-violet-400 hover:bg-violet-500/10 hover:text-violet-600"
-                                  }`}
-                                >
-                                  📝
-                                </button>
+                                <div className="w-12 flex justify-center pl-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setNotePopupPlayerId(isNoteOpen ? null : pid)}
+                                    title={note ? `Note: ${note}` : "Add coaching note"}
+                                    className={`w-8 h-8 rounded flex items-center justify-center text-base border transition-colors ${
+                                      note
+                                        ? "border-violet-400 bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                                        : "border-border text-muted-foreground hover:border-violet-400 hover:bg-violet-500/10 hover:text-violet-600"
+                                    }`}
+                                  >
+                                    📝
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Inline note popup */}
