@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase-browser"
 import { useRouter } from "next/navigation"
 
@@ -10,8 +10,33 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const [ready, setReady] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // Handle the fragment-based token flow (#access_token=...&type=recovery)
+  // used by older Supabase projects / default email templates.
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash) { setReady(true); return }
+
+    const params = new URLSearchParams(hash.slice(1))
+    const accessToken = params.get("access_token")
+    const refreshToken = params.get("refresh_token")
+    const type = params.get("type")
+
+    if (type === "recovery" && accessToken && refreshToken) {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          if (error) setError("This reset link is invalid or has expired.")
+          else setReady(true)
+        })
+    } else {
+      // Arrived via the token_hash server-side route — session already set
+      setReady(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault()
@@ -50,6 +75,10 @@ export default function ResetPasswordPage() {
             <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">✓ Password updated!</p>
             <p className="text-xs text-muted-foreground">Redirecting you to the app…</p>
           </div>
+        ) : !ready ? (
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm text-center">
+            <p className="text-xs text-muted-foreground">Verifying reset link…</p>
+          </div>
         ) : (
           <form onSubmit={handleReset} className="space-y-4 bg-card border border-border rounded-2xl p-6 shadow-sm">
             <div className="space-y-1.5">
@@ -82,7 +111,7 @@ export default function ResetPasswordPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || Boolean(error && !password)}
               className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {loading ? "Saving…" : "Set New Password"}
