@@ -101,11 +101,14 @@ export async function duplicateSheetAction(
       .single()
     if (fetchErr || !source) return { error: fetchErr?.message ?? "Not found" }
 
-    // Duplicate: keep roster+dividers, reset points/scores/archive
+    // Duplicate: keep roster+dividers+presets, reset points/scores/archive
     const newData: GameSheetData = {
       ...DEFAULT_SHEET_DATA,
       players: source.sheet_data?.players ?? [],
       lineDividers: source.sheet_data?.lineDividers ?? [8, 16],
+      linePresets: source.sheet_data?.linePresets ?? [],
+      genderRatioEnabled: source.sheet_data?.genderRatioEnabled ?? false,
+      startingRatio: source.sheet_data?.startingRatio,
       customTitle: newTitle ?? "",
     }
 
