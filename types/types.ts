@@ -76,6 +76,7 @@ export interface GameSheetData {
   ourTimeoutsH2?: number
   theirTimeoutsH1?: number
   theirTimeoutsH2?: number
+  halfTimeAfterPoint?: number | null
   lineDividers?: number[]
   isArchived?: boolean
   customTitle?: string

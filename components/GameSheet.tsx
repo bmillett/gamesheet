@@ -668,6 +668,12 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     saveData({ ...displayData, points: pts })
   }
 
+  function toggleHalfTime(pointIndex: number) {
+    triggerHaptic("light")
+    const current = displayData.halfTimeAfterPoint ?? null
+    saveData({ ...displayData, halfTimeAfterPoint: current === pointIndex ? null : pointIndex })
+  }
+
   function resetPointPlayers(pointIndex: number) {
     triggerHaptic("warning")
     const pts = [...displayData.points]
@@ -891,8 +897,15 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   const holds = ourHoldsCount
   const breaks = ourBreaksCount
 
+  const halfIdx = displayData.halfTimeAfterPoint ?? null
+
   const totalOurScore = runningUs
   const totalTheirScore = runningThem
+
+  const h1OurScore = halfIdx != null ? (ourRunningScores[halfIdx]?.total ?? 0) : null
+  const h1TheirScore = halfIdx != null ? (theirRunningScores[halfIdx]?.total ?? 0) : null
+  const h2OurScore = halfIdx != null ? totalOurScore - (h1OurScore ?? 0) : null
+  const h2TheirScore = halfIdx != null ? totalTheirScore - (h1TheirScore ?? 0) : null
 
   // Points played per player sum
   function getPlayerPointsPlayed(playerId: string | undefined): number {
@@ -1511,6 +1524,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                           Pt {pt.pointNumber}
                           {pt.scorer === "us" && " 🟢"}
                           {pt.scorer === "them" && " 🔴"}
+                          {displayData.halfTimeAfterPoint === idx && <span className="ml-0.5 text-purple-500 dark:text-purple-400">½</span>}
                         </button>
                       ))}
                     </div>
@@ -1592,11 +1606,24 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                             disabled={isReadOnly}
                             onChange={() => !isReadOnly && toggleCleanBreak(selectedLivePoint)}
                             className="w-4 h-4 rounded accent-blue-600"
-                          />
-                          Break (Us)
-                        </label>
-                      </div>
-                    </div>
+                         />
+                         Break (Us)
+                       </label>
+                       <button
+                         type="button"
+                         disabled={isReadOnly}
+                         onClick={() => !isReadOnly && toggleHalfTime(selectedLivePoint)}
+                         title="Mark/unmark halftime after this point"
+                         className={`px-2 py-0.5 rounded text-xs font-bold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                           displayData.halfTimeAfterPoint === selectedLivePoint
+                             ? "bg-purple-600 text-white border-purple-500 ring-2 ring-purple-400"
+                             : "bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-500/40 hover:bg-purple-500/30"
+                         }`}
+                       >
+                         ½ Half
+                       </button>
+                     </div>
+                   </div>
 
                     {/* ── FMP-as-MMP Confirmation ── */}
                     {pendingFmpAsMmp && pendingFmpAsMmp.pointIndex === selectedLivePoint && (() => {
@@ -2413,13 +2440,19 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                     <th className="roster-cell w-10 text-center text-xs font-bold text-primary border-r border-border" title="Total Points Played">
                       Pts
                     </th>
-                    {displayData.points.map((pt) => (
-                      <th
-                        key={pt.pointNumber}
-                        className="point-cell text-[11px] text-muted-foreground font-semibold text-center border-l border-border"
-                      >
-                        {pt.pointNumber}
-                      </th>
+                    {displayData.points.map((pt, ptIdx) => (
+                      <React.Fragment key={pt.pointNumber}>
+                        <th
+                          className={`point-cell text-[11px] text-muted-foreground font-semibold text-center border-l border-border ${halfIdx === ptIdx ? "border-r-2 border-r-purple-400" : ""}`}
+                        >
+                          {pt.pointNumber}
+                        </th>
+                        {halfIdx === ptIdx && (
+                          <th className="w-4 min-w-[1rem] text-center border-l-2 border-purple-400 bg-purple-500/10 print:w-3">
+                            <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400" style={{writingMode: "vertical-rl", transform: "rotate(180deg)"}}>HALF</span>
+                          </th>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tr>
                 </thead>
@@ -2451,7 +2484,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                               title={`Drag a player here to place in Line ${currentLine}`}
                             >
                               <td
-                                colSpan={6 + displayData.points.length}
+                                colSpan={6 + displayData.points.length + (halfIdx != null ? 1 : 0)}
                                 className="roster-cell py-0.5 text-[11px] font-bold text-primary/80 pl-2 select-none print:py-0 print:text-[8pt]"
                               >
                                 <div className="flex items-center justify-between pr-2">
@@ -2564,21 +2597,25 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                           {displayData.points.map((pt, ptIdx) => {
                             const isChecked = player ? pt.playerIds.includes(player.playerId) : false
                             return (
-                              <td
-                                key={ptIdx}
-                                className={`point-cell text-center border-l border-border/70 ${isReadOnly ? "cursor-not-allowed" : "cursor-pointer"}`}
-                                onClick={() => {
-                                  if (!isReadOnly && player) togglePlayerPoint(player.playerId, ptIdx)
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => !isReadOnly && player && togglePlayerPoint(player.playerId, ptIdx)}
-                                  disabled={isReadOnly || !player}
-                                  className={`point-checkbox w-3.5 h-3.5 rounded accent-primary ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer disabled:opacity-20"}`}
-                                />
-                              </td>
+                              <React.Fragment key={ptIdx}>
+                                <td
+                                  className={`point-cell text-center border-l border-border/70 ${isReadOnly ? "cursor-not-allowed" : "cursor-pointer"} ${halfIdx === ptIdx ? "border-r-2 border-r-purple-400" : ""}`}
+                                  onClick={() => {
+                                    if (!isReadOnly && player) togglePlayerPoint(player.playerId, ptIdx)
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => !isReadOnly && player && togglePlayerPoint(player.playerId, ptIdx)}
+                                    disabled={isReadOnly || !player}
+                                    className={`point-checkbox w-3.5 h-3.5 rounded accent-primary ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer disabled:opacity-20"}`}
+                                  />
+                                </td>
+                                {halfIdx === ptIdx && (
+                                  <td className="w-4 min-w-[1rem] border-l-2 border-purple-400 bg-purple-500/5 print:w-3" />
+                                )}
+                              </React.Fragment>
                             )
                           })}
                         </tr>
@@ -2587,7 +2624,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                         {showDividerControls && slotIndex < totalSlots - 1 && !dividers.includes(slotIndex + 1) && (
                           <tr className="print:hidden">
                             <td
-                              colSpan={6 + displayData.points.length}
+                              colSpan={6 + displayData.points.length + (halfIdx != null ? 1 : 0)}
                               className="p-0 border-y border-dashed border-primary/30 text-center bg-primary/5 hover:bg-primary/10 cursor-pointer transition-colors"
                               onClick={() => toggleDividerAt(slotIndex + 1)}
                             >
@@ -2614,15 +2651,20 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                       {ourHoldsCount}
                     </td>
                     {displayData.points.map((pt, ptIdx) => (
-                      <td key={ptIdx} className="point-cell text-center border-l border-border">
-                        <input
-                          type="checkbox"
-                          checked={pt.isCleanHold}
-                          disabled={isReadOnly}
-                          onChange={() => !isReadOnly && toggleCleanHold(ptIdx)}
-                          className={`point-checkbox w-3.5 h-3.5 rounded accent-emerald-600 ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
-                        />
-                      </td>
+                      <React.Fragment key={ptIdx}>
+                        <td className={`point-cell text-center border-l border-border ${halfIdx === ptIdx ? "border-r-2 border-r-purple-400" : ""}`}>
+                          <input
+                            type="checkbox"
+                            checked={pt.isCleanHold}
+                            disabled={isReadOnly}
+                            onChange={() => !isReadOnly && toggleCleanHold(ptIdx)}
+                            className={`point-checkbox w-3.5 h-3.5 rounded accent-emerald-600 ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
+                          />
+                        </td>
+                        {halfIdx === ptIdx && (
+                          <td className="w-4 min-w-[1rem] border-l-2 border-purple-400 bg-purple-500/5 print:w-3" />
+                        )}
+                      </React.Fragment>
                     ))}
                   </tr>
 
@@ -2637,15 +2679,20 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                       {ourBreaksCount}
                     </td>
                     {displayData.points.map((pt, ptIdx) => (
-                      <td key={ptIdx} className="point-cell text-center border-l border-border">
-                        <input
-                          type="checkbox"
-                          checked={pt.isCleanBreak}
-                          disabled={isReadOnly}
-                          onChange={() => !isReadOnly && toggleCleanBreak(ptIdx)}
-                          className={`point-checkbox w-3.5 h-3.5 rounded accent-blue-600 ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
-                        />
-                      </td>
+                      <React.Fragment key={ptIdx}>
+                        <td className={`point-cell text-center border-l border-border ${halfIdx === ptIdx ? "border-r-2 border-r-purple-400" : ""}`}>
+                          <input
+                            type="checkbox"
+                            checked={pt.isCleanBreak}
+                            disabled={isReadOnly}
+                            onChange={() => !isReadOnly && toggleCleanBreak(ptIdx)}
+                            className={`point-checkbox w-3.5 h-3.5 rounded accent-blue-600 ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
+                          />
+                        </td>
+                        {halfIdx === ptIdx && (
+                          <td className="w-4 min-w-[1rem] border-l-2 border-purple-400 bg-purple-500/5 print:w-3" />
+                        )}
+                      </React.Fragment>
                     ))}
                   </tr>
 
@@ -2663,17 +2710,21 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                       const isScored = pt.scorer === "us"
                       const currentTotal = ourRunningScores[ptIdx].total
                       return (
-                        <td
-                          key={ptIdx}
-                          className={`point-cell text-center border-l border-border select-none ${isReadOnly ? "cursor-default" : "cursor-pointer"}`}
-                          onClick={() => !isReadOnly && toggleScorer(ptIdx, "us")}
-                          title={isReadOnly ? "" : "Click to toggle Ignite score for this point"}
-                        >
-                          <div className="print-hide-val flex items-center justify-center font-bold text-[11px] text-amber-700 dark:text-amber-400">
-                            {isScored ? currentTotal : "—"}
-                          </div>
-                          <div className="print-show-box print-blank-box" />
-                        </td>
+                        <React.Fragment key={ptIdx}>
+                          <td
+                            className={`point-cell text-center border-l border-border select-none ${isReadOnly ? "cursor-default" : "cursor-pointer"} ${halfIdx === ptIdx ? "border-r-2 border-r-purple-400" : ""}`}
+                            onClick={() => !isReadOnly && toggleScorer(ptIdx, "us")}
+                            title={isReadOnly ? "" : "Click to toggle Ignite score for this point"}
+                          >
+                            <div className="print-hide-val flex items-center justify-center font-bold text-[11px] text-amber-700 dark:text-amber-400">
+                              {isScored ? currentTotal : "—"}
+                            </div>
+                            <div className="print-show-box print-blank-box" />
+                          </td>
+                          {halfIdx === ptIdx && (
+                            <td className="w-4 min-w-[1rem] border-l-2 border-purple-400 bg-purple-500/5 print:w-3" />
+                          )}
+                        </React.Fragment>
                       )
                     })}
                   </tr>
@@ -2692,17 +2743,21 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                       const isScored = pt.scorer === "them"
                       const currentTotal = theirRunningScores[ptIdx].total
                       return (
-                        <td
-                          key={ptIdx}
-                          className={`point-cell text-center border-l border-border select-none ${isReadOnly ? "cursor-default" : "cursor-pointer"}`}
-                          onClick={() => !isReadOnly && toggleScorer(ptIdx, "them")}
-                          title={isReadOnly ? "" : "Click to toggle Opponent score for this point"}
-                        >
-                          <div className="print-hide-val flex items-center justify-center font-bold text-[11px] text-rose-700 dark:text-rose-400">
-                            {isScored ? currentTotal : "—"}
-                          </div>
-                          <div className="print-show-box print-blank-box" />
-                        </td>
+                        <React.Fragment key={ptIdx}>
+                          <td
+                            className={`point-cell text-center border-l border-border select-none ${isReadOnly ? "cursor-default" : "cursor-pointer"} ${halfIdx === ptIdx ? "border-r-2 border-r-purple-400" : ""}`}
+                            onClick={() => !isReadOnly && toggleScorer(ptIdx, "them")}
+                            title={isReadOnly ? "" : "Click to toggle Opponent score for this point"}
+                          >
+                            <div className="print-hide-val flex items-center justify-center font-bold text-[11px] text-rose-700 dark:text-rose-400">
+                              {isScored ? currentTotal : "—"}
+                            </div>
+                            <div className="print-show-box print-blank-box" />
+                          </td>
+                          {halfIdx === ptIdx && (
+                            <td className="w-4 min-w-[1rem] border-l-2 border-purple-400 bg-purple-500/5 print:w-3" />
+                          )}
+                        </React.Fragment>
                       )
                     })}
                   </tr>
@@ -2863,6 +2918,26 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                       <div className="font-bold text-purple-600">{theirBreaksCount}</div>
                     </div>
                   </div>
+                  {halfIdx != null && h1OurScore != null && h1TheirScore != null && h2OurScore != null && h2TheirScore != null && (
+                    <div className="grid grid-cols-2 gap-1 text-center text-[10px]">
+                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
+                        <div className="text-muted-foreground font-medium">½ 1st Half</div>
+                        <div className="font-bold">
+                          <span className="text-amber-600">{h1OurScore}</span>
+                          <span className="text-muted-foreground mx-1">–</span>
+                          <span className="text-rose-600">{h1TheirScore}</span>
+                        </div>
+                      </div>
+                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
+                        <div className="text-muted-foreground font-medium">½ 2nd Half</div>
+                        <div className="font-bold">
+                          <span className="text-amber-600">{h2OurScore}</span>
+                          <span className="text-muted-foreground mx-1">–</span>
+                          <span className="text-rose-600">{h2TheirScore}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Print view: fill-in blank boxes */}
