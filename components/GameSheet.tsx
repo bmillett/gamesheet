@@ -1620,7 +1620,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                              : "bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-500/40 hover:bg-purple-500/30"
                          }`}
                        >
-                         ½ Half
+                         Half
                        </button>
                      </div>
                    </div>
