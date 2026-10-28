@@ -8,13 +8,69 @@ export default function HelpPage() {
         <p className="text-xs text-muted-foreground mt-0.5">How to use the 7s Gamesheet app</p>
       </div>
 
+      {/* Formats */}
+      <section className="space-y-3">
+        <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+          <span>🔀</span> 7v7 and 4v4 Formats
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Each team is set to either <strong className="text-foreground">7v7</strong> or <strong className="text-foreground">4v4</strong>. The format is shown next to the team name in the team switcher. It controls the grid size, line splits, points range, and gender ratio rules throughout the app.
+        </p>
+        <div className="rounded-lg border border-border overflow-hidden text-sm">
+          <table className="w-full">
+            <thead className="bg-muted text-xs text-muted-foreground">
+              <tr>
+                <th className="p-2.5 text-left font-semibold"></th>
+                <th className="p-2.5 text-left font-semibold">7v7</th>
+                <th className="p-2.5 text-left font-semibold">4v4</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border text-muted-foreground">
+              <tr>
+                <td className="p-2.5 font-semibold text-foreground">Players on field</td>
+                <td className="p-2.5">7</td>
+                <td className="p-2.5">4</td>
+              </tr>
+              <tr>
+                <td className="p-2.5 font-semibold text-foreground">Roster / grid slots</td>
+                <td className="p-2.5">24</td>
+                <td className="p-2.5">12</td>
+              </tr>
+              <tr>
+                <td className="p-2.5 font-semibold text-foreground">Default line split</td>
+                <td className="p-2.5">8 / 8 / 8</td>
+                <td className="p-2.5">4 / 4 / 4</td>
+              </tr>
+              <tr>
+                <td className="p-2.5 font-semibold text-foreground">Split presets</td>
+                <td className="p-2.5">8/8/8, 10/7/7, 12/12, No Split</td>
+                <td className="p-2.5">4/4/4, 6/6, No Split</td>
+              </tr>
+              <tr>
+                <td className="p-2.5 font-semibold text-foreground">Points slider</td>
+                <td className="p-2.5">29–40 (default 30)</td>
+                <td className="p-2.5">30–60 (default 40)</td>
+              </tr>
+              <tr>
+                <td className="p-2.5 font-semibold text-foreground">Gender ratio</td>
+                <td className="p-2.5">4F/3M ↔ 3F/4M, ABBAABBAA pattern</td>
+                <td className="p-2.5">Always 2F/2M</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          <strong className="text-foreground">Changing format:</strong> go to <strong className="text-foreground">Coaches &amp; Staff → Team Settings</strong>, choose 7v7 or 4v4, and click Save. Existing game sheets keep their original layout; only new sheets use the new format.
+        </p>
+      </section>
+
       {/* Roster */}
       <section className="space-y-3">
         <h2 className="text-base font-bold text-foreground flex items-center gap-2">
           <span>👥</span> Roster Page
         </h2>
         <p className="text-sm text-muted-foreground">
-          Set up your 24-player roster before your first game. Players marked <strong className="text-foreground">Active</strong> will appear in the gamesheet bench pool.
+          Set up your roster before your first game: <strong className="text-foreground">24 players for 7v7</strong> or <strong className="text-foreground">12 players for 4v4</strong>. Players marked <strong className="text-foreground">Active</strong> will appear in the gamesheet bench pool.
         </p>
         <div className="rounded-lg border border-border divide-y divide-border text-sm">
           <div className="p-3 flex gap-3">
@@ -43,7 +99,7 @@ export default function HelpPage() {
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-28 shrink-0">Bulk import</span>
-            <span className="text-muted-foreground">Click <strong className="text-foreground">Bulk import via CSV paste</strong> and enter one player per line: <code className="bg-muted px-1 rounded text-xs">7, Jane Doe, Handler</code></span>
+            <span className="text-muted-foreground">Click <strong className="text-foreground">Bulk import via CSV paste</strong> and enter one player per line: <code className="bg-muted px-1 rounded text-xs">7, Jane Doe, Handler, FMP</code>. Gender (FMP or MMP) is optional. For 4v4, a balanced roster is 6 FMP and 6 MMP (12 players).</span>
           </div>
         </div>
       </section>
@@ -54,7 +110,7 @@ export default function HelpPage() {
           <span>📋</span> Sheets Page
         </h2>
         <p className="text-sm text-muted-foreground">
-          Each game gets its own sheet. Sheets store the 24-slot lineup, point-by-point scores, and player stats.
+          Each game gets its own sheet. Sheets store the lineup (24 slots for 7v7, 12 slots for 4v4), point-by-point scores, and player stats.
         </p>
 
         <h3 className="text-sm font-semibold text-foreground pt-1">Managing sheets</h3>
@@ -69,7 +125,7 @@ export default function HelpPage() {
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Points slider</span>
-            <span className="text-muted-foreground">Drag the <strong className="text-foreground">Points</strong> slider (29–40) to set how many point columns are shown. Defaults to 30. The setting is saved per sheet.</span>
+            <span className="text-muted-foreground">Drag the <strong className="text-foreground">Points</strong> slider to set how many point columns are shown. 7v7: 29–40, default 30. 4v4: 30–60, default 40. The setting is saved per sheet.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Archive sheet</span>
@@ -89,7 +145,7 @@ export default function HelpPage() {
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Line splits</span>
-            <span className="text-muted-foreground">Click <strong className="text-foreground">✂ Line Splits</strong> to configure line dividers. Default is 8/8/8 (rows 1–8, 9–16, 17–24). Other presets: 10/7/7, 2 Lines 12/12, or No Split.</span>
+            <span className="text-muted-foreground">Click <strong className="text-foreground">✂ Line Splits</strong> to configure line dividers. <strong className="text-foreground">7v7:</strong> default 8/8/8 (rows 1–8, 9–16, 17–24); other presets 10/7/7, 2 Lines 12/12, or No Split. <strong className="text-foreground">4v4:</strong> default 4/4/4 (rows 1–4, 5–8, 9–12); other presets 2 Lines 6/6, or No Split.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Mark out/injured</span>
@@ -143,15 +199,15 @@ export default function HelpPage() {
         <div className="rounded-lg border border-border divide-y divide-border text-sm">
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Player cards</span>
-            <span className="text-muted-foreground">Tap individual player cards to toggle them on/off field. The badge shows <strong className="text-foreground">X / 7 on field</strong> — green when exactly 7 are selected.</span>
+            <span className="text-muted-foreground">Tap individual player cards to toggle them on/off field. The badge shows <strong className="text-foreground">X / 7 on field</strong> for 7v7 or <strong className="text-foreground">X / 4 on field</strong> for 4v4 — green when the exact number is selected.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Line buttons</span>
-            <span className="text-muted-foreground">Tap <strong className="text-foreground">Line 1 / Line 2 / Line 3</strong> to set the entire line on field at once. Injured players are automatically excluded.</span>
+            <span className="text-muted-foreground">Tap <strong className="text-foreground">Line 1 / Line 2 / Line 3</strong> to set the entire line on field at once. Injured players are automatically excluded. With the default splits, a 7v7 line has 8 players to choose from and a 4v4 line has 4.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">⚡ Preset lines</span>
-            <span className="text-muted-foreground">Tap a named preset (e.g. <strong className="text-foreground">Power O</strong>) to instantly set those 7 players. Preset buttons appear above the line buttons when presets exist. See <em>Line Presets</em> below for how to create them.</span>
+            <span className="text-muted-foreground">Tap a named preset (e.g. <strong className="text-foreground">Power O</strong>) to instantly set those players. Preset buttons appear above the line buttons when presets exist. See <em>Line Presets</em> below for how to create them.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Navigate points</span>
@@ -199,7 +255,7 @@ export default function HelpPage() {
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Create preset</span>
-            <span className="text-muted-foreground">Type a name, then tap up to 7 players from the roster picker (pink dot = FMP, blue = MMP). In live mode, <strong className="text-foreground">Use current point</strong> fills the selection from whoever is on field. Tap <strong className="text-foreground">Save Preset</strong>.</span>
+            <span className="text-muted-foreground">Type a name, then tap up to 7 players (7v7) or 4 players (4v4) from the roster picker (pink dot = FMP, blue = MMP). In live mode, <strong className="text-foreground">Use current point</strong> fills the selection from whoever is on field. Tap <strong className="text-foreground">Save Preset</strong>.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Rename / delete</span>
@@ -207,7 +263,7 @@ export default function HelpPage() {
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Apply in game</span>
-            <span className="text-muted-foreground">In live mode, preset buttons appear above Line 1/2/3. Tap a preset to set those players on field for the current point (max 7, injured players skipped). The button turns amber when active.</span>
+            <span className="text-muted-foreground">In live mode, preset buttons appear above Line 1/2/3. Tap a preset to set those players on field for the current point (max 7 for 7v7, 4 for 4v4; injured players skipped). The button turns amber when active.</span>
           </div>
         </div>
       </section>
@@ -218,7 +274,11 @@ export default function HelpPage() {
           <span>⚥</span> Gender Ratio Enforcement
         </h2>
         <p className="text-sm text-muted-foreground">
-          For mixed 7v7, the gender ratio alternates each point: one gender has 4 players on for 1 point, then the other gender has 4 for the next 2, then back — the ABBAABBAA pattern.
+          <strong className="text-foreground">7v7:</strong> the gender ratio alternates each point: one gender has 4 players on for 1 point, then the other gender has 4 for the next 2, then back — the ABBAABBAA pattern.
+          For example, starting 4F/3M: point 1 = 4F/3M, point 2 = 3F/4M, point 3 = 3F/4M, point 4 = 4F/3M, and so on.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong className="text-foreground">4v4:</strong> the ratio is fixed every point — always <strong className="text-pink-600">2F</strong>/<strong className="text-blue-600">2M</strong>. There is no alternating pattern and no starting ratio to choose.
         </p>
         <div className="rounded-lg border border-border divide-y divide-border text-sm">
           <div className="p-3 flex gap-3">
@@ -227,15 +287,15 @@ export default function HelpPage() {
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Starting ratio</span>
-            <span className="text-muted-foreground">Tap the ratio toggle button to set whether point 1 starts with <strong className="text-pink-600">4F/3M</strong> (pink) or <strong className="text-blue-600">3F/4M</strong> (blue). The pattern alternates automatically from there.</span>
+            <span className="text-muted-foreground"><strong className="text-foreground">7v7 only.</strong> Tap the ratio toggle button to set whether point 1 starts with <strong className="text-pink-600">4F/3M</strong> (pink) or <strong className="text-blue-600">3F/4M</strong> (blue). The pattern alternates automatically from there. This toggle is not shown for 4v4.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Ratio badge</span>
-            <span className="text-muted-foreground">Next to the on-field player count, a badge shows the current FMP/MMP split. <strong className="text-pink-600">Pink ✓</strong> = correct ratio, <strong className="text-orange-500">Orange ⚠</strong> = wrong split, <strong className="text-muted-foreground">Grey</strong> = fewer than 7 players selected (hover for expected ratio).</span>
+            <span className="text-muted-foreground">Next to the on-field player count, a badge shows the current FMP/MMP split. <strong className="text-pink-600">Pink ✓</strong> = correct ratio, <strong className="text-orange-500">Orange ⚠</strong> = wrong split, <strong className="text-muted-foreground">Grey</strong> = fewer than 7 (7v7) or 4 (4v4) players selected (hover for expected ratio).</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">FMP as MMP</span>
-            <span className="text-muted-foreground">If you tap an FMP player when the FMP quota is already full, a confirmation prompt appears: <em>FMP playing as MMP-matching</em>. Tap <strong className="text-foreground">Confirm</strong> to add them anyway, or <strong className="text-foreground">Cancel</strong> to choose someone else.</span>
+            <span className="text-muted-foreground">If you tap an FMP player when the FMP quota is already full (e.g. a third FMP in 4v4), a confirmation prompt appears: <em>FMP playing as MMP-matching</em>. Tap <strong className="text-foreground">Confirm</strong> to add them anyway, or <strong className="text-foreground">Cancel</strong> to choose someone else.</span>
           </div>
         </div>
       </section>

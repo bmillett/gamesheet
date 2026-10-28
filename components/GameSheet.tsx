@@ -1672,7 +1672,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                 key={preset.id}
                                 type="button"
                                 disabled={isReadOnly}
-                                onClick={() => !isReadOnly && preset.playerIds.length > 0 && setLineOnField(preset.playerIds.slice(0, 7), selectedLivePoint)}
+                                onClick={() => !isReadOnly && preset.playerIds.length > 0 && setLineOnField(preset.playerIds.slice(0, playersPerSide), selectedLivePoint)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                                   isActive
                                     ? "bg-amber-600 text-white border-amber-500 ring-2 ring-amber-400"
@@ -2293,13 +2293,13 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-muted-foreground">
-                        Select players ({newPresetPlayerIds.length}/7)
+                        Select players ({newPresetPlayerIds.length}/{playersPerSide})
                       </span>
                       <div className="flex gap-2">
                         {gameMode && (displayData.points[selectedLivePoint]?.playerIds ?? []).length > 0 && (
                           <button
                             type="button"
-                            onClick={() => setNewPresetPlayerIds((displayData.points[selectedLivePoint]?.playerIds ?? []).slice(0, 7))}
+                            onClick={() => setNewPresetPlayerIds((displayData.points[selectedLivePoint]?.playerIds ?? []).slice(0, playersPerSide))}
                             className="text-[11px] text-amber-600 hover:text-amber-800 font-medium"
                           >
                             Use current point
@@ -2319,7 +2319,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                     <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
                       {teamPlayers.map((p) => {
                         const isSelected = newPresetPlayerIds.includes(p.id)
-                        const atMax = newPresetPlayerIds.length >= 7
+                        const atMax = newPresetPlayerIds.length >= playersPerSide
                         return (
                           <button
                             key={p.id}
@@ -2329,7 +2329,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                               setNewPresetPlayerIds((prev) =>
                                 prev.includes(p.id)
                                   ? prev.filter((id) => id !== p.id)
-                                  : prev.length < 7 ? [...prev, p.id] : prev
+                                  : prev.length < playersPerSide ? [...prev, p.id] : prev
                               )
                             }}
                             className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
