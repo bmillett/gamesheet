@@ -594,13 +594,14 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   // ── Point Grid Interactions ─────────────────────────────────────────────
 
   function setLineOnField(linePlayerIds: string[], pointIndex: number) {
-    triggerHaptic("medium")
     const pts = [...displayData.points]
     const point = { ...pts[pointIndex] }
     // Keep any players already on field from other lines, replace only this line's players
     const otherLineIds = point.playerIds.filter((id) => !linePlayerIds.includes(id))
     const activeLineIds = linePlayerIds.filter((id) => !data.injuredPlayerIds?.includes(id))
     point.playerIds = [...otherLineIds, ...activeLineIds]
+    // Stronger buzz when this pushes the point over the allowed number of players
+    triggerHaptic(point.playerIds.length > playersPerSide ? "warning" : "medium")
     pts[pointIndex] = point
     saveData({ ...displayData, points: pts })
   }
@@ -624,10 +625,11 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
       }
     }
 
-    triggerHaptic("light")
     point.playerIds = has
       ? point.playerIds.filter((id) => id !== playerId)
       : [...point.playerIds, playerId]
+    // Stronger buzz when adding a player pushes the point over the allowed number
+    triggerHaptic(!has && point.playerIds.length > playersPerSide ? "warning" : "light")
     pts[pointIndex] = point
     saveData({ ...displayData, points: pts })
   }
@@ -1624,6 +1626,63 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                        </button>
                      </div>
                    </div>
+
+                    {/* ── Lineup problem banner (non-blocking; tap a chip to remove that player) ── */}
+                    {(() => {
+                      const onFieldIds = currentLivePointObj.playerIds
+                      const tooMany = onFieldIds.length > playersPerSide
+                      let ratioMsg: string | null = null
+                      if (displayData.genderRatioEnabled && (displayData.startingRatio || playersPerSide === 4)) {
+                        const ratioKey = (displayData.startingRatio ?? "4fmp-3mmp") as StartingRatio
+                        const expected = getExpectedRatio(selectedLivePoint, ratioKey, playersPerSide)
+                        const { fmp, mmp, unknown } = countGenders(onFieldIds, teamPlayers)
+                        const status = getRatioStatus(selectedLivePoint, ratioKey, onFieldIds, teamPlayers, playersPerSide)
+                        if (status === "wrong" || fmp > expected.fmp || mmp > expected.mmp) {
+                          ratioMsg = `Gender ratio: ${fmp}F ${mmp}M on field, expected ${expected.fmp}F ${expected.mmp}M${unknown > 0 ? ` (${unknown} with no gender set)` : ""}`
+                        }
+                      }
+                      if (!tooMany && !ratioMsg) return null
+                      return (
+                        <div
+                          role="alert"
+                          className={`rounded-lg border-2 p-3 space-y-2 ${
+                            tooMany
+                              ? "border-rose-500 bg-rose-50 dark:bg-rose-950/30"
+                              : "border-orange-400 bg-orange-50 dark:bg-orange-950/20"
+                          }`}
+                        >
+                          <div className={`text-sm font-bold ${tooMany ? "text-rose-700 dark:text-rose-300" : "text-orange-700 dark:text-orange-300"}`}>
+                            {tooMany && (
+                              <div>⚠️ Too many players: {onFieldIds.length} / {playersPerSide} on field. Remove {onFieldIds.length - playersPerSide}.</div>
+                            )}
+                            {ratioMsg && <div>⚠️ {ratioMsg}</div>}
+                          </div>
+                          {!isReadOnly && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {onFieldIds.map((id) => {
+                                const p = teamPlayers.find((tp) => tp.id === id)
+                                if (!p) return null
+                                return (
+                                  <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => togglePlayerPoint(id, selectedLivePoint)}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold border border-border bg-background text-foreground hover:bg-accent transition-colors"
+                                    title="Tap to remove from this point"
+                                  >
+                                    {p.gender === "FMP" && <span className="inline-block w-2 h-2 rounded-full bg-pink-500 shrink-0" />}
+                                    {p.gender === "MMP" && <span className="inline-block w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+                                    {p.jersey_number != null && <span className="text-muted-foreground">#{p.jersey_number}</span>}
+                                    <span>{p.display_name}</span>
+                                    <span className="text-rose-600 font-bold">✕</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {/* ── FMP-as-MMP Confirmation ── */}
                     {pendingFmpAsMmp && pendingFmpAsMmp.pointIndex === selectedLivePoint && (() => {

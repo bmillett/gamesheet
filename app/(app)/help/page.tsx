@@ -202,6 +202,10 @@ export default function HelpPage() {
             <span className="text-muted-foreground">Tap individual player cards to toggle them on/off field. The badge shows <strong className="text-foreground">X / 7 on field</strong> for 7v7 or <strong className="text-foreground">X / 4 on field</strong> for 4v4 — green when the exact number is selected.</span>
           </div>
           <div className="p-3 flex gap-3">
+            <span className="font-semibold text-foreground w-36 shrink-0">Lineup warning</span>
+            <span className="text-muted-foreground">If more players are on field than allowed (or, with Ratio on, too many of one gender), a red or orange banner appears with a chip for each player on field. It never blocks you, so you can add a player first and remove another after. Tap a chip&apos;s <strong className="text-foreground">✕</strong> to remove that player; the banner disappears once the lineup is correct.</span>
+          </div>
+          <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Line buttons</span>
             <span className="text-muted-foreground">Tap <strong className="text-foreground">Line 1 / Line 2 / Line 3</strong> to set the entire line on field at once. Injured players are automatically excluded. With the default splits, a 7v7 line has 8 players to choose from and a 4v4 line has 4.</span>
           </div>
