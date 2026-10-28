@@ -103,26 +103,3 @@ export function getRatioStatus(
   return fmp === expected.fmp && mmp === expected.mmp ? "ok" : "wrong"
 }
 
-/**
- * Returns true if adding this player (FMP) would be filling a slot that
- * should be MMP — i.e. the point already has the full FMP quota and the
- * player being added is FMP.
- */
-export function isFmpAsMmp(
-  playerIdToAdd: string,
-  currentPlayerIds: string[],
-  pointIndex: number,
-  startingRatio: StartingRatio,
-  allPlayers: Array<{ id: string; gender: string }>,
-  playersPerSide = 7
-): boolean {
-  const genderMap = new Map(allPlayers.map((p) => [p.id, p.gender]))
-  const incomingGender = genderMap.get(playerIdToAdd) ?? ""
-  if (incomingGender !== "FMP") return false
-
-  const { fmp } = countGenders(currentPlayerIds, allPlayers)
-  const expected = getExpectedRatio(pointIndex, startingRatio, playersPerSide)
-
-  // FMP quota is already full — this player would overflow it
-  return fmp >= expected.fmp
-}

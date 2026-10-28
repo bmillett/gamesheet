@@ -299,7 +299,7 @@ export default function HelpPage() {
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">FMP as MMP</span>
-            <span className="text-muted-foreground">If you tap an FMP player when the FMP quota is already full (e.g. a third FMP in 4v4), a confirmation prompt appears: <em>FMP playing as MMP-matching</em>. Tap <strong className="text-foreground">Confirm</strong> to add them anyway, or <strong className="text-foreground">Cancel</strong> to choose someone else.</span>
+            <span className="text-muted-foreground">An FMP may play in an MMP-matching slot, so the app never blocks it. If you add one (e.g. a third FMP in 4v4), the orange lineup warning appears for that point. If it was intentional, just ignore the warning. Tap a player chip&apos;s ✕ in the warning to undo it.</span>
           </div>
         </div>
       </section>

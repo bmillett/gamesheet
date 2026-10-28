@@ -36,7 +36,7 @@ import {
 import { syncEngine } from "@/lib/offline/sync-engine"
 import { saveCachedRoster, getLocalSheet, saveLocalSheet } from "@/lib/offline/db"
 import { triggerHaptic } from "@/lib/utils/haptics"
-import { getExpectedRatio, countGenders, getRatioStatus, isFmpAsMmp } from "@/lib/utils/gender-ratio"
+import { getExpectedRatio, countGenders, getRatioStatus } from "@/lib/utils/gender-ratio"
 import type { StartingRatio } from "@/lib/utils/gender-ratio"
 import { getTeamConfig } from "@/lib/utils/team-config"
 import { SyncStatusBadge } from "@/components/SyncStatusBadge"
@@ -203,7 +203,6 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   const [showRosterBench, setShowRosterBench] = useState(true)
   const [showDividerControls, setShowDividerControls] = useState(false)
   const [showPresetManager, setShowPresetManager] = useState(false)
-  const [pendingFmpAsMmp, setPendingFmpAsMmp] = useState<{ playerId: string; pointIndex: number } | null>(null)
   const [newPresetName, setNewPresetName] = useState("")
   const [newPresetPlayerIds, setNewPresetPlayerIds] = useState<string[]>([])
   const [renamingPresetId, setRenamingPresetId] = useState<string | null>(null)
@@ -615,16 +614,6 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     const point = { ...pts[pointIndex] }
     const has = point.playerIds.includes(playerId)
 
-    // When adding (not removing) and gender ratio is enabled, check FMP-as-MMP
-    // For 4v4 startingRatio is unused, so fall back to "4fmp-3mmp" as a neutral key
-    if (!has && data.genderRatioEnabled && (data.startingRatio || playersPerSide === 4)) {
-      const ratioKey = (data.startingRatio ?? "4fmp-3mmp") as StartingRatio
-      if (isFmpAsMmp(playerId, point.playerIds, pointIndex, ratioKey, teamPlayers, playersPerSide)) {
-        setPendingFmpAsMmp({ playerId, pointIndex })
-        return
-      }
-    }
-
     point.playerIds = has
       ? point.playerIds.filter((id) => id !== playerId)
       : [...point.playerIds, playerId]
@@ -632,18 +621,6 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     triggerHaptic(!has && point.playerIds.length > playersPerSide ? "warning" : "light")
     pts[pointIndex] = point
     saveData({ ...displayData, points: pts })
-  }
-
-  function confirmFmpAsMmp() {
-    if (!pendingFmpAsMmp) return
-    triggerHaptic("warning")
-    const { playerId, pointIndex } = pendingFmpAsMmp
-    const pts = [...displayData.points]
-    const point = { ...pts[pointIndex] }
-    point.playerIds = [...point.playerIds, playerId]
-    pts[pointIndex] = point
-    saveData({ ...displayData, points: pts })
-    setPendingFmpAsMmp(null)
   }
 
   function toggleGenderRatio() {
@@ -1680,39 +1657,6 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                               })}
                             </div>
                           )}
-                        </div>
-                      )
-                    })()}
-
-                    {/* ── FMP-as-MMP Confirmation ── */}
-                    {pendingFmpAsMmp && pendingFmpAsMmp.pointIndex === selectedLivePoint && (() => {
-                      const player = teamPlayers.find(p => p.id === pendingFmpAsMmp.playerId)
-                      const ratioKey = (displayData.startingRatio ?? "4fmp-3mmp") as StartingRatio
-                      const expected = getExpectedRatio(selectedLivePoint, ratioKey, playersPerSide)
-                      return (
-                        <div className="rounded-lg border-2 border-orange-400 bg-orange-50 dark:bg-orange-950/20 p-3 space-y-2">
-                          <div className="text-xs font-bold text-orange-700 dark:text-orange-300">
-                            ⚠️ FMP playing as MMP-matching
-                          </div>
-                          <div className="text-xs text-foreground">
-                            <span className="font-semibold">{player?.display_name ?? "This player"}</span> is FMP but this point calls for {expected ? `${expected.fmp}F/${expected.mmp}M` : "more MMP"}. The FMP quota is already full.
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={confirmFmpAsMmp}
-                              className="px-3 py-1.5 rounded-md text-xs font-bold bg-orange-600 text-white hover:bg-orange-700 transition-colors"
-                            >
-                              Confirm — Add as MMP-matching
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPendingFmpAsMmp(null)}
-                              className="px-3 py-1.5 rounded-md text-xs font-bold border border-border text-muted-foreground hover:bg-accent transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
                         </div>
                       )
                     })()}
