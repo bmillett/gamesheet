@@ -26,7 +26,7 @@
  * 8. Paper-ready bottom tracking & single-page landscape print layout.
  */
 
-import React, { useState, useTransition, useCallback, useEffect } from "react"
+import React, { useState, useTransition, useCallback, useEffect, useRef } from "react"
 import {
   createSheetAction,
   updateSheetAction,
@@ -729,6 +729,18 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     saveData({ ...displayData, startingEnd: next })
   }
 
+  // ── Advance to next point and scroll back up to the line section ───────
+  const lineSectionRef = useRef<HTMLDivElement>(null)
+  const hasNextPoint = selectedLivePoint < displayData.points.length - 1
+
+  function goToNextPoint() {
+    if (!hasNextPoint) return
+    triggerHaptic("light")
+    setSelectedLivePoint(selectedLivePoint + 1)
+    setIsGameModeCollapsed(false)
+    lineSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
   // ── Auto-open stats panel when a point is scored for us ────────────────
   const currentPointScorer = displayData.points[selectedLivePoint]?.scorer
   useEffect(() => {
@@ -1427,7 +1439,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
 
             {/* ── LIVE SIDELINE "GAME MODE" (Tablet & Mobile Optimized) ── */}
             {gameMode && (
-              <div className="p-4 rounded-xl border-2 border-emerald-500 bg-emerald-500/5 print:hidden space-y-3">
+              <div ref={lineSectionRef} className="p-4 rounded-xl border-2 border-emerald-500 bg-emerald-500/5 print:hidden space-y-3 scroll-mt-20">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
                   <div className="flex items-center gap-3">
                     <button
@@ -1830,6 +1842,15 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                         )
                       })}
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={goToNextPoint}
+                      disabled={!hasNextPoint}
+                      className="w-full px-4 py-3 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next Point (Pt {selectedLivePoint + 2}) →
+                    </button>
                   </div>
                 )}
               </div>
@@ -2102,6 +2123,15 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                         </button>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={goToNextPoint}
+                      disabled={!hasNextPoint}
+                      className="w-full px-4 py-3 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next Point (Pt {selectedLivePoint + 2}) →
+                    </button>
 
                   </div>
                 )}
