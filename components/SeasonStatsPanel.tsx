@@ -30,12 +30,15 @@ interface PlayerSeasonStats {
   displayName: string
   jerseyNumber: number | null
   gender: string
+  gamesPlayed: number
   pointsPlayed: number
   goals: number
   assists: number
+  totalPoints: number // Goals + Assists (G+A)
   dBlocks: number
   throwaways: number
   drops: number
+  plusMinus: number // (Goals + Assists + D-Blocks) - (Turns + Drops)
   /** Notes keyed by game label (opponent / sheet title) */
   notes: { gameLabel: string; note: string }[]
 }
@@ -117,12 +120,15 @@ function aggregatePlayerStats(
       displayName: rp.display_name,
       jerseyNumber: rp.jersey_number,
       gender: rp.gender,
+      gamesPlayed: 0,
       pointsPlayed: 0,
       goals: 0,
       assists: 0,
+      totalPoints: 0,
       dBlocks: 0,
       throwaways: 0,
       drops: 0,
+      plusMinus: 0,
       notes: [],
     })
   })
@@ -137,6 +143,8 @@ function aggregatePlayerStats(
     data.players.forEach((p) => {
       if (p?.playerId) sheetPlayerNames.set(p.playerId, p.displayName)
     })
+
+    const playersInThisGame = new Set<string>()
 
     data.points.forEach((pt: GameSheetPoint, idx: number) => {
       let expectedPoss: "offense" | "defense" = startPoss
@@ -154,15 +162,19 @@ function aggregatePlayerStats(
             displayName: sheetPlayerNames.get(pid) ?? pid,
             jerseyNumber: null,
             gender: "",
+            gamesPlayed: 0,
             pointsPlayed: 0,
             goals: 0,
             assists: 0,
+            totalPoints: 0,
             dBlocks: 0,
             throwaways: 0,
             drops: 0,
+            plusMinus: 0,
             notes: [],
           })
         }
+        playersInThisGame.add(pid)
         const entry = statsMap.get(pid)!
         entry.pointsPlayed++
       })
@@ -202,10 +214,23 @@ function aggregatePlayerStats(
         }
       })
     }
+
+    // Increment games played for everyone who logged at least 1 point in this sheet
+    playersInThisGame.forEach((pid) => {
+      const entry = statsMap.get(pid)
+      if (entry) {
+        entry.gamesPlayed++
+      }
+    })
   })
 
   return Array.from(statsMap.values())
     .filter((s) => s.pointsPlayed > 0)
+    .map((s) => {
+      s.totalPoints = s.goals + s.assists
+      s.plusMinus = s.goals + s.assists + s.dBlocks - (s.throwaways + s.drops)
+      return s
+    })
     .sort((a, b) => b.pointsPlayed - a.pointsPlayed || (a.jerseyNumber ?? 999) - (b.jerseyNumber ?? 999))
 }
 
@@ -218,10 +243,56 @@ function pct(num: number, den: number): string {
 // Component
 // ---------------------------------------------------------------------------
 
+type PlayerSortField = "displayName" | "gamesPlayed" | "pointsPlayed" | "plusMinus" | "totalPoints" | "goals" | "assists" | "dBlocks" | "throwaways" | "drops"
+type SortDirection = "asc" | "desc"
+type StatDisplayMode = "totals" | "perGame"
+
+function getPlayerSortValue(ps: PlayerSeasonStats, field: PlayerSortField, perGame: boolean): number {
+  if (field === "displayName") return 0
+  if (field === "gamesPlayed") return ps.gamesPlayed
+  const raw = ps[field]
+  if (!perGame || ps.gamesPlayed === 0) return raw
+  return raw / ps.gamesPlayed
+}
+
 export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanelProps) {
   const gameStats = useMemo(() => sheets.map(deriveGameStats), [sheets])
   const playerStats = useMemo(() => aggregatePlayerStats(sheets, players), [sheets, players])
   const [expandedNotePlayer, setExpandedNotePlayer] = useState<string | null>(null)
+  const [statMode, setStatMode] = useState<StatDisplayMode>("totals")
+  const [sortField, setSortField] = useState<PlayerSortField>("pointsPlayed")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+
+  const isPerGame = statMode === "perGame"
+
+  const handleSort = (field: PlayerSortField) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDirection(field === "displayName" ? "asc" : "desc")
+    }
+  }
+
+  const sortedPlayerStats = useMemo(() => {
+    return [...playerStats].sort((a, b) => {
+      let cmp = 0
+      if (sortField === "displayName") {
+        cmp = a.displayName.localeCompare(b.displayName)
+      } else {
+        const valA = getPlayerSortValue(a, sortField, isPerGame)
+        const valB = getPlayerSortValue(b, sortField, isPerGame)
+        cmp = valA - valB
+      }
+
+      if (cmp === 0) {
+        // Secondary sort: points played desc, then name asc
+        cmp = b.pointsPlayed - a.pointsPlayed || a.displayName.localeCompare(b.displayName)
+      }
+
+      return sortDirection === "asc" ? cmp : -cmp
+    })
+  }, [playerStats, sortField, sortDirection, isPerGame])
 
   // Group by tournament — null / "" → "Other Games"
   const tournamentGroups = useMemo<TournamentGroup[]>(() => {
@@ -429,27 +500,93 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
       {/* Player leaderboard */}
       {playerStats.length > 0 && (
         <div className="rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-2.5 bg-muted/60 border-b border-border">
-            <span className="font-semibold text-sm text-foreground">Player Leaderboard</span>
-            <span className="text-xs text-muted-foreground ml-2">all sheets including in-progress</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-2.5 bg-muted/60 border-b border-border gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm text-foreground">Player Leaderboard</span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">all sheets including in-progress</span>
+            </div>
+
+            {/* Totals vs Per Game toggle */}
+            <div className="flex items-center gap-1 bg-background/80 dark:bg-muted/40 p-0.5 rounded-lg border border-border text-xs self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setStatMode("totals")}
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                  statMode === "totals"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Totals
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatMode("perGame")}
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                  statMode === "perGame"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Per Game
+              </button>
+            </div>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-border bg-muted/30 text-muted-foreground uppercase tracking-wide">
-                  <th className="px-3 py-2 text-left font-semibold">Player</th>
-                  <th className="px-3 py-2 text-center font-semibold">Pts Played</th>
-                  <th className="px-3 py-2 text-center font-semibold">Goals</th>
-                  <th className="px-3 py-2 text-center font-semibold">Assists</th>
-                  <th className="px-3 py-2 text-center font-semibold">D-Blocks</th>
-                  <th className="px-3 py-2 text-center font-semibold">Turns</th>
-                  <th className="px-3 py-2 text-center font-semibold">Drops</th>
+                <tr className="border-b border-border bg-muted/30 text-muted-foreground uppercase tracking-wide select-none">
+                  {([
+                    { key: "displayName" as const, label: "Player", align: "text-left" },
+                    { key: "gamesPlayed" as const, label: "GP", align: "text-center" },
+                    { key: "pointsPlayed" as const, label: isPerGame ? "Pts/G" : "Pts", align: "text-center" },
+                    { key: "plusMinus" as const, label: isPerGame ? "+/-/G" : "+/-", align: "text-center" },
+                    { key: "totalPoints" as const, label: isPerGame ? "G+A/G" : "G+A", align: "text-center" },
+                    { key: "goals" as const, label: isPerGame ? "Goals/G" : "Goals", align: "text-center" },
+                    { key: "assists" as const, label: isPerGame ? "Assists/G" : "Assists", align: "text-center" },
+                    { key: "dBlocks" as const, label: isPerGame ? "Blocks/G" : "Blocks", align: "text-center" },
+                    { key: "throwaways" as const, label: isPerGame ? "Turns/G" : "Turns", align: "text-center" },
+                    { key: "drops" as const, label: isPerGame ? "Drops/G" : "Drops", align: "text-center" },
+                  ]).map(({ key, label, align }) => {
+                    const isActive = sortField === key
+                    return (
+                      <th
+                        key={key}
+                        onClick={() => handleSort(key)}
+                        className={`px-3 py-2 ${align} font-semibold cursor-pointer hover:bg-muted/60 transition-colors ${
+                          isActive ? "text-foreground font-bold bg-muted/40" : ""
+                        }`}
+                        title={`Sort by ${label} (${isActive && sortDirection === "asc" ? "descending" : "ascending"})`}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {label}
+                          <span className={`text-[10px] ${isActive ? "text-primary opacity-100" : "opacity-30"}`}>
+                            {isActive ? (sortDirection === "asc" ? "▲" : "▼") : "⇅"}
+                          </span>
+                        </span>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {playerStats.map((ps, i) => {
+                {sortedPlayerStats.map((ps, i) => {
                   const isExpanded = expandedNotePlayer === ps.playerId
                   const rowBg = i % 2 === 0 ? "" : "bg-muted/10"
+                  const gp = ps.gamesPlayed || 1
+
+                  // Value formatters
+                  const ptsVal = isPerGame ? (ps.pointsPlayed / gp).toFixed(1) : ps.pointsPlayed
+                  const pmRaw = isPerGame ? ps.plusMinus / gp : ps.plusMinus
+                  const pmFormatted = isPerGame ? (pmRaw > 0 ? `+${pmRaw.toFixed(1)}` : pmRaw < 0 ? pmRaw.toFixed(1) : "0.0") : (pmRaw > 0 ? `+${pmRaw}` : `${pmRaw}`)
+                  const gPlusAVal = isPerGame ? (ps.totalPoints / gp).toFixed(1) : (ps.totalPoints || "—")
+                  const goalsVal = isPerGame ? (ps.goals / gp).toFixed(1) : (ps.goals || "—")
+                  const assistsVal = isPerGame ? (ps.assists / gp).toFixed(1) : (ps.assists || "—")
+                  const dBlocksVal = isPerGame ? (ps.dBlocks / gp).toFixed(1) : (ps.dBlocks || "—")
+                  const turnsVal = isPerGame ? (ps.throwaways / gp).toFixed(1) : (ps.throwaways || "—")
+                  const dropsVal = isPerGame ? (ps.drops / gp).toFixed(1) : (ps.drops || "—")
+
                   return (
                     <React.Fragment key={ps.playerId}>
                       <tr className={`border-b border-border/50 ${ps.notes.length > 0 && isExpanded ? "" : "last:border-0"} ${rowBg}`}>
@@ -472,16 +609,29 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                             </button>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-center font-bold tabular-nums text-foreground">{ps.pointsPlayed}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.goals || "—"}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.assists || "—"}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.dBlocks || "—"}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.throwaways || "—"}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{ps.drops || "—"}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-muted-foreground font-medium">{ps.gamesPlayed}</td>
+                        <td className="px-3 py-2 text-center font-bold tabular-nums text-foreground">{ptsVal}</td>
+                        <td className="px-3 py-2 text-center tabular-nums font-semibold">
+                          {pmRaw > 0 ? (
+                            <span className="text-emerald-600 dark:text-emerald-400">{pmFormatted}</span>
+                          ) : pmRaw < 0 ? (
+                            <span className="text-rose-600 dark:text-rose-400">{pmFormatted}</span>
+                          ) : (
+                            <span className="text-muted-foreground">{isPerGame ? "0.0" : "0"}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center tabular-nums font-semibold text-foreground">
+                          {gPlusAVal}
+                        </td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{goalsVal}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{assistsVal}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{dBlocksVal}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{turnsVal}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{dropsVal}</td>
                       </tr>
                       {ps.notes.length > 0 && isExpanded && (
                         <tr className={`border-b border-border/50 last:border-0 ${rowBg}`}>
-                          <td colSpan={7} className="px-4 py-2.5">
+                          <td colSpan={10} className="px-4 py-2.5">
                             <div className="space-y-1.5">
                               {ps.notes.map(({ gameLabel, note }, ni) => (
                                 <div key={ni} className="flex gap-2 text-xs">
