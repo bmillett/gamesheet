@@ -1474,12 +1474,12 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                 <div className="print:hidden space-y-1.5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {/* Us */}
-                    <div className="px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2">
-                      <div className="flex items-baseline gap-2 min-w-0">
-                        <span className="text-xs font-bold text-foreground truncate">{teamName}</span>
-                        <span className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-none">
+                    <div className="px-2.5 py-1 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-none">
                           {totalOurScore}
                         </span>
+                        <span className="text-xs font-bold text-foreground truncate">{teamName}</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 text-xs">
                         <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold tabular-nums text-[11px]">
@@ -1492,12 +1492,12 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                     </div>
 
                     {/* Them */}
-                    <div className="px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2">
-                      <div className="flex items-baseline gap-2 min-w-0">
-                        <span className="text-xs font-bold text-foreground truncate">{opponentName || "Opponent"}</span>
-                        <span className="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none">
+                    <div className="px-2.5 py-1 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-3xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none">
                           {totalTheirScore}
                         </span>
+                        <span className="text-xs font-bold text-foreground truncate">{opponentName || "Opponent"}</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 text-xs">
                         <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-400 font-semibold tabular-nums text-[11px]">
