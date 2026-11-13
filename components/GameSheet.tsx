@@ -665,6 +665,10 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     saveData({ ...displayData, points: pts })
   }
 
+  // ── Line section ref for scrolling to line controls ────────────────────
+  const lineSectionRef = useRef<HTMLDivElement>(null)
+  const hasNextPoint = selectedLivePoint < displayData.points.length - 1
+
   function toggleScorer(pointIndex: number, target: "us" | "them") {
     triggerHaptic("medium")
     const pts = [...displayData.points]
@@ -703,6 +707,16 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
       isCleanBreak: cleanBreak,
     }
     saveData({ ...displayData, points: pts })
+
+    // When opponent scores in game mode on the active point, progress to the next
+    // point and scroll back up to the line section (same as clicking "Next Point")
+    if (gameMode && target === "them" && next === "them" && pointIndex === selectedLivePoint) {
+      if (pointIndex < displayData.points.length - 1) {
+        setSelectedLivePoint(pointIndex + 1)
+      }
+      setIsGameModeCollapsed(false)
+      lineSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
   }
 
   function togglePlayerInjured(playerId: string) {
@@ -730,9 +744,6 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   }
 
   // ── Advance to next point and scroll back up to the line section ───────
-  const lineSectionRef = useRef<HTMLDivElement>(null)
-  const hasNextPoint = selectedLivePoint < displayData.points.length - 1
-
   function goToNextPoint() {
     if (!hasNextPoint) return
     triggerHaptic("light")
