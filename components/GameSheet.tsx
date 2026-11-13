@@ -161,6 +161,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   const [isGameModeCollapsed, setIsGameModeCollapsed] = useState<boolean>(false)
   const [selectedLivePoint, setSelectedLivePoint] = useState<number>(0) // 0-based point index for live mode
   const [isStatsPanelOpen, setIsStatsPanelOpen] = useState<boolean>(false)
+  const [showOtherPointStats, setShowOtherPointStats] = useState<boolean>(false)
   const [notePopupPlayerId, setNotePopupPlayerId] = useState<string | null>(null)
 
   const [selectedSheetId, setSelectedSheetId] = useState<string>(() => {
@@ -603,6 +604,15 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     triggerHaptic(point.playerIds.length > playersPerSide ? "warning" : "medium")
     pts[pointIndex] = point
     saveData({ ...displayData, points: pts })
+
+    // Auto-collapse line selection and focus stats panel if full line is set in game mode
+    if (gameMode && pointIndex === selectedLivePoint && point.playerIds.length >= playersPerSide) {
+      setIsGameModeCollapsed(true)
+      setIsStatsPanelOpen(true)
+      setTimeout(() => {
+        statsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 50)
+    }
   }
 
   function togglePlayerPoint(playerId: string | undefined, pointIndex: number) {
@@ -621,6 +631,15 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     triggerHaptic(!has && point.playerIds.length > playersPerSide ? "warning" : "light")
     pts[pointIndex] = point
     saveData({ ...displayData, points: pts })
+
+    // Auto-collapse line selection and focus stats panel if full line is reached by toggling
+    if (gameMode && pointIndex === selectedLivePoint && !has && point.playerIds.length === playersPerSide) {
+      setIsGameModeCollapsed(true)
+      setIsStatsPanelOpen(true)
+      setTimeout(() => {
+        statsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 50)
+    }
   }
 
   function toggleGenderRatio() {
@@ -665,8 +684,9 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     saveData({ ...displayData, points: pts })
   }
 
-  // ── Line section ref for scrolling to line controls ────────────────────
+  // ── Line & Stats section refs for scrolling controls ───────────────────
   const lineSectionRef = useRef<HTMLDivElement>(null)
+  const statsSectionRef = useRef<HTMLDivElement>(null)
   const hasNextPoint = selectedLivePoint < displayData.points.length - 1
 
   function toggleScorer(pointIndex: number, target: "us" | "them") {
@@ -715,7 +735,15 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
         setSelectedLivePoint(pointIndex + 1)
       }
       setIsGameModeCollapsed(false)
+      setShowOtherPointStats(false)
       lineSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    } else if (gameMode && target === "us" && next === "us" && pointIndex === selectedLivePoint) {
+      setIsGameModeCollapsed(true)
+      setIsStatsPanelOpen(true)
+      setShowOtherPointStats(false)
+      setTimeout(() => {
+        statsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 50)
     }
   }
 
@@ -749,6 +777,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     triggerHaptic("light")
     setSelectedLivePoint(selectedLivePoint + 1)
     setIsGameModeCollapsed(false)
+    setShowOtherPointStats(false)
     lineSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
@@ -1724,7 +1753,10 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => setSelectedLivePoint(idx)}
+                          onClick={() => {
+                            setSelectedLivePoint(idx)
+                            setShowOtherPointStats(false)
+                          }}
                           className={`px-3 py-2 min-h-[40px] rounded-md text-xs font-bold transition-all shrink-0 border ${
                             selectedLivePoint === idx
                               ? "bg-primary text-primary-foreground border-primary ring-2 ring-primary/40"
@@ -2081,7 +2113,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
 
             {/* ── STATS PANEL (below Game Mode, collapsible) ── */}
             {gameMode && !isReadOnly && (
-              <div className="rounded-xl border-2 border-violet-500 bg-violet-500/5 print:hidden">
+              <div ref={statsSectionRef} className="rounded-xl border-2 border-violet-500 bg-violet-500/5 print:hidden scroll-mt-20">
                 {/* Header toggle bar — matches roster grid pattern */}
                 <button
                   type="button"
@@ -2213,148 +2245,177 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                       </div>
                     )}
 
-                    {/* ── Live stat counters per on-field player ── */}
-                    <div className="space-y-2">
-                      <div className="text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">
-                        Player Stats — Pt {selectedLivePoint + 1}
-                      </div>
+                    {/* When we scored: provide immediate Next Point button and collapse lower counters by default */}
+                    {currentLivePointObj.scorer === "us" && (
+                      <div className="space-y-3">
+                        <button
+                          type="button"
+                          onClick={goToNextPoint}
+                          disabled={!hasNextPoint}
+                          className="w-full px-4 py-3 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next Point (Pt {selectedLivePoint + 2}) →
+                        </button>
 
-                      {/* Column headers */}
-                      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 items-center px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                        <span>Player</span>
-                        <span className="w-20 text-center text-blue-600 dark:text-blue-400">D-Block</span>
-                        <span className="w-20 text-center text-amber-600 dark:text-amber-400">T/A</span>
-                        <span className="w-20 text-center text-rose-600 dark:text-rose-400">Drop</span>
-                        <span className="w-12 text-center pl-2">Note</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowOtherPointStats((s) => !s)}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold rounded-lg border border-violet-400/40 bg-violet-500/10 text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 transition-colors"
+                        >
+                          <span>{showOtherPointStats ? "▲ Hide" : "▼ Show"} other point stats</span>
+                          <span className="text-[11px] font-normal text-muted-foreground">(D-Blocks, Turns, Drops)</span>
+                        </button>
                       </div>
+                    )}
 
-                      {currentLivePointObj.playerIds.length === 0 ? (
-                        <p className="text-xs text-muted-foreground italic px-1">Select players on field above to record stats</p>
-                      ) : (
-                        currentLivePointObj.playerIds.map((pid) => {
-                          const p = displayData.players.find((pl) => pl.playerId === pid)
-                          if (!p) return null
-                          const pStats = currentLivePointObj.playerStats?.[pid] ?? { dBlocks: 0, throwaways: 0, drops: 0 }
-                          const note = displayData.playerNotes?.[pid] ?? ""
-                          const isNoteOpen = notePopupPlayerId === pid
-                          return (
-                            <div key={pid} className="relative bg-card border border-border rounded-lg px-2 py-1.5">
-                              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 items-center">
-                                <span className="text-xs font-medium truncate">
-                                  {p.displayName}
-                                </span>
-                                {(["dBlocks", "throwaways", "drops"] as (keyof PlayerPointStats)[]).map((stat, si) => {
-                                  const colors = [
-                                    "border-blue-400 text-blue-700 dark:text-blue-300",
-                                    "border-amber-400 text-amber-700 dark:text-amber-300",
-                                    "border-rose-400 text-rose-700 dark:text-rose-300",
-                                  ]
-                                  const addColors = [
-                                    "bg-blue-500/10 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border-blue-400",
-                                    "bg-amber-500/10 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-400",
-                                    "bg-rose-500/10 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border-rose-400",
-                                  ]
-                                  return (
-                                    <div key={stat} className="flex items-center gap-1 w-20 justify-center">
+                    {/* ── Live stat counters per on-field player (always visible during play, collapsible when scored) ── */}
+                    {(currentLivePointObj.scorer !== "us" || showOtherPointStats) && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">
+                            Player Stats — Pt {selectedLivePoint + 1}
+                          </div>
+
+                          {/* Column headers */}
+                          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 items-center px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                            <span>Player</span>
+                            <span className="w-20 text-center text-blue-600 dark:text-blue-400">D-Block</span>
+                            <span className="w-20 text-center text-amber-600 dark:text-amber-400">T/A</span>
+                            <span className="w-20 text-center text-rose-600 dark:text-rose-400">Drop</span>
+                            <span className="w-12 text-center pl-2">Note</span>
+                          </div>
+
+                          {currentLivePointObj.playerIds.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic px-1">Select players on field above to record stats</p>
+                          ) : (
+                            currentLivePointObj.playerIds.map((pid) => {
+                              const p = displayData.players.find((pl) => pl.playerId === pid)
+                              if (!p) return null
+                              const pStats = currentLivePointObj.playerStats?.[pid] ?? { dBlocks: 0, throwaways: 0, drops: 0 }
+                              const note = displayData.playerNotes?.[pid] ?? ""
+                              const isNoteOpen = notePopupPlayerId === pid
+                              return (
+                                <div key={pid} className="relative bg-card border border-border rounded-lg px-2 py-1.5">
+                                  <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 items-center">
+                                    <span className="text-xs font-medium truncate">
+                                      {p.displayName}
+                                    </span>
+                                    {(["dBlocks", "throwaways", "drops"] as (keyof PlayerPointStats)[]).map((stat, si) => {
+                                      const colors = [
+                                        "border-blue-400 text-blue-700 dark:text-blue-300",
+                                        "border-amber-400 text-amber-700 dark:text-amber-300",
+                                        "border-rose-400 text-rose-700 dark:text-rose-300",
+                                      ]
+                                      const addColors = [
+                                        "bg-blue-500/10 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border-blue-400",
+                                        "bg-amber-500/10 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-400",
+                                        "bg-rose-500/10 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border-rose-400",
+                                      ]
+                                      return (
+                                        <div key={stat} className="flex items-center gap-1 w-20 justify-center">
+                                          <button
+                                            type="button"
+                                            onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, -1)}
+                                            disabled={pStats[stat] === 0}
+                                            className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed ${colors[si]} bg-transparent hover:bg-black/5`}
+                                          >
+                                            −
+                                          </button>
+                                          <span className={`w-6 text-center text-sm font-bold ${colors[si]}`}>{pStats[stat]}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, 1)}
+                                            className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center ${addColors[si]}`}
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      )
+                                    })}
+                                    {/* Note icon button */}
+                                    <div className="w-12 flex justify-center pl-2">
                                       <button
                                         type="button"
-                                        onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, -1)}
-                                        disabled={pStats[stat] === 0}
-                                        className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed ${colors[si]} bg-transparent hover:bg-black/5`}
+                                        onClick={() => setNotePopupPlayerId(isNoteOpen ? null : pid)}
+                                        title={note ? `Note: ${note}` : "Add coaching note"}
+                                        className={`w-8 h-8 rounded flex items-center justify-center text-base border transition-colors ${
+                                          note
+                                            ? "border-violet-400 bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                                            : "border-border text-muted-foreground hover:border-violet-400 hover:bg-violet-500/10 hover:text-violet-600"
+                                        }`}
                                       >
-                                        −
-                                      </button>
-                                      <span className={`w-6 text-center text-sm font-bold ${colors[si]}`}>{pStats[stat]}</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => adjustPlayerStat(selectedLivePoint, pid, stat, 1)}
-                                        className={`w-8 h-8 rounded text-sm font-bold border flex items-center justify-center ${addColors[si]}`}
-                                      >
-                                        +
+                                        📝
                                       </button>
                                     </div>
-                                  )
-                                })}
-                                {/* Note icon button */}
-                                <div className="w-12 flex justify-center pl-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setNotePopupPlayerId(isNoteOpen ? null : pid)}
-                                    title={note ? `Note: ${note}` : "Add coaching note"}
-                                    className={`w-8 h-8 rounded flex items-center justify-center text-base border transition-colors ${
-                                      note
-                                        ? "border-violet-400 bg-violet-500/15 text-violet-700 dark:text-violet-300"
-                                        : "border-border text-muted-foreground hover:border-violet-400 hover:bg-violet-500/10 hover:text-violet-600"
-                                    }`}
-                                  >
-                                    📝
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Inline note popup */}
-                              {isNoteOpen && (
-                                <div className="mt-1.5 rounded-md border border-violet-400/60 bg-violet-500/5 p-2 space-y-1.5">
-                                  <textarea
-                                    value={note}
-                                    onChange={(e) => setPlayerNote(pid, e.target.value)}
-                                    placeholder={`Coaching note for ${p.displayName}…`}
-                                    rows={3}
-                                    autoFocus
-                                    className="w-full text-xs px-2 py-1 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-violet-400 resize-none"
-                                  />
-                                  <div className="flex justify-end">
-                                    <button
-                                      type="button"
-                                      onClick={() => setNotePopupPlayerId(null)}
-                                      className="px-2.5 py-1 text-xs font-medium rounded bg-violet-600 text-white hover:bg-violet-700 transition-colors"
-                                    >
-                                      Done
-                                    </button>
                                   </div>
+
+                                  {/* Inline note popup */}
+                                  {isNoteOpen && (
+                                    <div className="mt-1.5 rounded-md border border-violet-400/60 bg-violet-500/5 p-2 space-y-1.5">
+                                      <textarea
+                                        value={note}
+                                        onChange={(e) => setPlayerNote(pid, e.target.value)}
+                                        placeholder={`Coaching note for ${p.displayName}…`}
+                                        rows={3}
+                                        autoFocus
+                                        className="w-full text-xs px-2 py-1 rounded border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-violet-400 resize-none"
+                                      />
+                                      <div className="flex justify-end">
+                                        <button
+                                          type="button"
+                                          onClick={() => setNotePopupPlayerId(null)}
+                                          className="px-2.5 py-1 text-xs font-medium rounded bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                                        >
+                                          Done
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          )
-                        })
-                      )}
-                    </div>
+                              )
+                            })
+                          )}
+                        </div>
 
-                    {/* ── Opponent Blocks Against (team-level) ── */}
-                    <div className="flex items-center justify-between gap-3 rounded-lg border border-rose-400/50 bg-rose-500/10 px-3 py-2">
-                      <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">
-                        They Got a D (Pt {selectedLivePoint + 1})
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => adjustOpponentBlocks(selectedLivePoint, -1)}
-                          disabled={(currentLivePointObj.opponentBlocks ?? 0) === 0}
-                          className="w-9 h-9 rounded border border-rose-400 text-rose-700 dark:text-rose-300 text-base font-bold flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-rose-500/20"
-                        >
-                          −
-                        </button>
-                        <span className="w-7 text-center text-base font-bold text-rose-700 dark:text-rose-300">
-                          {currentLivePointObj.opponentBlocks ?? 0}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => adjustOpponentBlocks(selectedLivePoint, 1)}
-                          className="w-9 h-9 rounded border border-rose-400 bg-rose-500/10 text-rose-700 dark:text-rose-300 text-base font-bold flex items-center justify-center hover:bg-rose-500/25"
-                        >
-                          +
-                        </button>
+                        {/* ── Opponent Blocks Against (team-level) ── */}
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-rose-400/50 bg-rose-500/10 px-3 py-2">
+                          <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">
+                            They Got a D (Pt {selectedLivePoint + 1})
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => adjustOpponentBlocks(selectedLivePoint, -1)}
+                              disabled={(currentLivePointObj.opponentBlocks ?? 0) === 0}
+                              className="w-9 h-9 rounded border border-rose-400 text-rose-700 dark:text-rose-300 text-base font-bold flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-rose-500/20"
+                            >
+                              −
+                            </button>
+                            <span className="w-7 text-center text-base font-bold text-rose-700 dark:text-rose-300">
+                              {currentLivePointObj.opponentBlocks ?? 0}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => adjustOpponentBlocks(selectedLivePoint, 1)}
+                              className="w-9 h-9 rounded border border-rose-400 bg-rose-500/10 text-rose-700 dark:text-rose-300 text-base font-bold flex items-center justify-center hover:bg-rose-500/25"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        {currentLivePointObj.scorer !== "us" && (
+                          <button
+                            type="button"
+                            onClick={goToNextPoint}
+                            disabled={!hasNextPoint}
+                            className="w-full px-4 py-3 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next Point (Pt {selectedLivePoint + 2}) →
+                          </button>
+                        )}
                       </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={goToNextPoint}
-                      disabled={!hasNextPoint}
-                      className="w-full px-4 py-3 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next Point (Pt {selectedLivePoint + 2}) →
-                    </button>
+                    )}
 
                   </div>
                 )}
