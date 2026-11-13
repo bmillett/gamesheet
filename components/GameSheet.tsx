@@ -1466,61 +1466,57 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
             {/* ── Top Tracking Panels (Score leftmost, Timeouts right) ── */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 paper-top-grid">
               {/* Game Stats & Summary (Score & Point Stats leftmost, 2/3 width) */}
-              <div className="p-3 rounded-lg border border-border bg-card space-y-2 md:col-span-2 flex flex-col justify-between">
+              <div className="p-2.5 rounded-lg border border-border bg-card space-y-1.5 md:col-span-2 flex flex-col justify-between">
                 <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
                   Score & Point Stats
                 </div>
-                {/* On-screen view: side-by-side score + prominent hold/break badges */}
-                <div className="print:hidden space-y-2">
+                {/* On-screen view: horizontal single-line team + score + hold/break badges */}
+                <div className="print:hidden space-y-1.5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {/* Us */}
-                    <div className="p-2.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-xs text-muted-foreground font-semibold truncate">{teamName}</div>
-                        <div className="text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-none mt-1">
+                    <div className="px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="text-xs font-bold text-foreground truncate">{teamName}</span>
+                        <span className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-none">
                           {totalOurScore}
-                        </div>
+                        </span>
                       </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Holds</span>
-                          <span className="text-sm font-bold tabular-nums">{ourHoldsCount}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-semibold">
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Breaks</span>
-                          <span className="text-sm font-bold tabular-nums">{ourBreaksCount}</span>
-                        </div>
+                      <div className="flex items-center gap-1.5 shrink-0 text-xs">
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold tabular-nums text-[11px]">
+                          H: {ourHoldsCount}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-400 font-semibold tabular-nums text-[11px]">
+                          B: {ourBreaksCount}
+                        </span>
                       </div>
                     </div>
 
                     {/* Them */}
-                    <div className="p-2.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-xs text-muted-foreground font-semibold truncate">{opponentName || "Opponent"}</div>
-                        <div className="text-3xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none mt-1">
+                    <div className="px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="text-xs font-bold text-foreground truncate">{opponentName || "Opponent"}</span>
+                        <span className="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none">
                           {totalTheirScore}
-                        </div>
+                        </span>
                       </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-500/10 text-rose-700 dark:text-rose-400 text-xs font-semibold">
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Holds</span>
-                          <span className="text-sm font-bold tabular-nums">{theirHoldsCount}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-400 text-xs font-semibold">
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Breaks</span>
-                          <span className="text-sm font-bold tabular-nums">{theirBreaksCount}</span>
-                        </div>
+                      <div className="flex items-center gap-1.5 shrink-0 text-xs">
+                        <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-400 font-semibold tabular-nums text-[11px]">
+                          H: {theirHoldsCount}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-400 font-semibold tabular-nums text-[11px]">
+                          B: {theirBreaksCount}
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   {halfIdx != null && h1OurScore != null && h1TheirScore != null && h2OurScore != null && h2TheirScore != null && (
-                    <div className="grid grid-cols-2 gap-1 text-center text-[10px] pt-0.5">
-                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
+                    <div className="grid grid-cols-2 gap-1 text-center text-[10px]">
+                      <div className="px-1.5 py-0.5 rounded border border-purple-500/40 bg-purple-500/10">
                         <span className="text-muted-foreground font-medium">½ 1st Half: </span>
                         <span className="font-bold text-foreground">{h1OurScore}–{h1TheirScore}</span>
                       </div>
-                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
+                      <div className="px-1.5 py-0.5 rounded border border-purple-500/40 bg-purple-500/10">
                         <span className="text-muted-foreground font-medium">½ 2nd Half: </span>
                         <span className="font-bold text-foreground">{h2OurScore}–{h2TheirScore}</span>
                       </div>
@@ -1558,11 +1554,11 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               </div>
 
               {/* Timeout Tracking Boxes - 1st & 2nd Half (1/3 width) */}
-              <div className="p-3 rounded-lg border border-border bg-card space-y-2 md:col-span-1 flex flex-col justify-between">
+              <div className="p-2.5 rounded-lg border border-border bg-card space-y-1.5 md:col-span-1 flex flex-col justify-between">
                 <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
                   Timeouts
                 </div>
-                <div className="space-y-2 text-xs">
+                <div className="space-y-1.5 text-xs">
                   {/* Ignite Timeouts */}
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-foreground truncate text-xs">{teamName}:</span>
