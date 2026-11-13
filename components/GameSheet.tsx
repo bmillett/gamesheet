@@ -945,7 +945,8 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
           .print-blank-box { width: 100% !important; height: 11px !important; border: 1px solid #777 !important; display: block !important; }
           .print-show-box { display: block !important; }
           .print-hide-val { display: none !important; }
-          .paper-bottom-grid { display: grid !important; grid-template-columns: 2fr 1fr 2fr !important; gap: 4px !important; }
+          .paper-top-grid { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 4px !important; margin-bottom: 4px !important; }
+          .paper-bottom-grid { display: block !important; margin-top: 4px !important; }
         }
         @media screen {
           .sheet-header-print { display: none; }
@@ -2451,6 +2452,211 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               </div>
             </div>
 
+            {/* ── Top Tracking Panels (Score leftmost, Timeouts right) ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 paper-top-grid">
+              {/* Game Stats & Summary (Score & Point Stats leftmost) */}
+              <div className="p-3 rounded-lg border border-border bg-card space-y-2">
+                <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                  Score & Point Stats
+                </div>
+                {/* On-screen view: calculated totals */}
+                <div className="print:hidden space-y-2">
+                  <div className="grid grid-cols-2 gap-1.5 text-center">
+                    <div className="p-1.5 rounded border border-border/60 bg-muted/20">
+                      <div className="text-[10px] text-muted-foreground">{teamName} Score</div>
+                      <div className="text-base font-bold text-amber-600">{totalOurScore}</div>
+                      <div className="text-[10px] font-medium flex items-center justify-center gap-1 text-muted-foreground">
+                        <span>Holds: <strong className="text-emerald-600">{ourHoldsCount}</strong></span>
+                        <span>·</span>
+                        <span>Breaks: <strong className="text-blue-600">{ourBreaksCount}</strong></span>
+                      </div>
+                    </div>
+                    <div className="p-1.5 rounded border border-border/60 bg-muted/20">
+                      <div className="text-[10px] text-muted-foreground">{opponentName ? opponentName.slice(0, 10) : "Opponent"} Score</div>
+                      <div className="text-base font-bold text-rose-600">{totalTheirScore}</div>
+                      <div className="text-[10px] font-medium flex items-center justify-center gap-1 text-muted-foreground">
+                        <span>Holds: <strong className="text-rose-600">{theirHoldsCount}</strong></span>
+                        <span>·</span>
+                        <span>Breaks: <strong className="text-purple-600">{theirBreaksCount}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
+                    <div className="p-1 rounded border border-border/50 bg-emerald-500/10">
+                      <div className="text-muted-foreground">Us Hold</div>
+                      <div className="font-bold text-emerald-600">{ourHoldsCount}</div>
+                    </div>
+                    <div className="p-1 rounded border border-border/50 bg-blue-500/10">
+                      <div className="text-muted-foreground">Us Break</div>
+                      <div className="font-bold text-blue-600">{ourBreaksCount}</div>
+                    </div>
+                    <div className="p-1 rounded border border-border/50 bg-rose-500/10">
+                      <div className="text-muted-foreground">Opp Hold</div>
+                      <div className="font-bold text-rose-600">{theirHoldsCount}</div>
+                    </div>
+                    <div className="p-1 rounded border border-border/50 bg-purple-500/10">
+                      <div className="text-muted-foreground">Opp Break</div>
+                      <div className="font-bold text-purple-600">{theirBreaksCount}</div>
+                    </div>
+                  </div>
+                  {halfIdx != null && h1OurScore != null && h1TheirScore != null && h2OurScore != null && h2TheirScore != null && (
+                    <div className="grid grid-cols-2 gap-1 text-center text-[10px]">
+                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
+                        <div className="text-muted-foreground font-medium">½ 1st Half</div>
+                        <div className="font-bold">
+                          <span className="text-amber-600">{h1OurScore}</span>
+                          <span className="text-muted-foreground mx-1">–</span>
+                          <span className="text-rose-600">{h1TheirScore}</span>
+                        </div>
+                      </div>
+                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
+                        <div className="text-muted-foreground font-medium">½ 2nd Half</div>
+                        <div className="font-bold">
+                          <span className="text-amber-600">{h2OurScore}</span>
+                          <span className="text-muted-foreground mx-1">–</span>
+                          <span className="text-rose-600">{h2TheirScore}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Print view: fill-in blank boxes */}
+                <div className="hidden print:grid grid-cols-6 gap-1 text-center">
+                  <div className="p-1 rounded border border-black/40">
+                    <div className="text-[6.5pt] font-semibold">{teamName}</div>
+                    <div className="h-3 border-b border-black/30 mt-0.5" />
+                  </div>
+                  <div className="p-1 rounded border border-black/40">
+                    <div className="text-[6.5pt] font-semibold">{opponentName ? opponentName.slice(0, 7) : "Opp"}</div>
+                    <div className="h-3 border-b border-black/30 mt-0.5" />
+                  </div>
+                  <div className="p-1 rounded border border-black/40">
+                    <div className="text-[6.5pt] font-semibold">Us Hold</div>
+                    <div className="h-3 border-b border-black/30 mt-0.5" />
+                  </div>
+                  <div className="p-1 rounded border border-black/40">
+                    <div className="text-[6.5pt] font-semibold">Us Break</div>
+                    <div className="h-3 border-b border-black/30 mt-0.5" />
+                  </div>
+                  <div className="p-1 rounded border border-black/40">
+                    <div className="text-[6.5pt] font-semibold">Opp Hold</div>
+                    <div className="h-3 border-b border-black/30 mt-0.5" />
+                  </div>
+                  <div className="p-1 rounded border border-black/40">
+                    <div className="text-[6.5pt] font-semibold">Opp Break</div>
+                    <div className="h-3 border-b border-black/30 mt-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeout Tracking Boxes - 1st & 2nd Half (2 per each) */}
+              <div className="p-3 rounded-lg border border-border bg-card space-y-2">
+                <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                  Timeouts (1st Half / 2nd Half)
+                </div>
+                <div className="space-y-2 text-xs">
+                  {/* Ignite Timeouts */}
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">{teamName}:</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground uppercase font-medium">1st:</span>
+                        <div className="flex gap-1">
+                          {[0, 1].map((i) => (
+                            <button
+                              key={`our-h1-${i}`}
+                              type="button"
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && toggleHalfTimeout("our", "h1", i)}
+                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                                                i < ourH1
+                                                  ? "bg-primary text-primary-foreground border-primary"
+                                                  : "bg-background border-border hover:border-primary/50 text-muted-foreground"
+                                              }`}
+                            >
+                              <span className="print-hide-val">{i < ourH1 ? "✓" : i + 1}</span>
+                              <span className="print-show-box"></span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground uppercase font-medium">2nd:</span>
+                        <div className="flex gap-1">
+                          {[0, 1].map((i) => (
+                            <button
+                              key={`our-h2-${i}`}
+                              type="button"
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && toggleHalfTimeout("our", "h2", i)}
+                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                                                i < ourH2
+                                                  ? "bg-primary text-primary-foreground border-primary"
+                                                  : "bg-background border-border hover:border-primary/50 text-muted-foreground"
+                                              }`}
+                            >
+                              <span className="print-hide-val">{i < ourH2 ? "✓" : i + 1}</span>
+                              <span className="print-show-box"></span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Opponent Timeouts */}
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">{opponentName || "Opponent"}:</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground uppercase font-medium">1st:</span>
+                        <div className="flex gap-1">
+                          {[0, 1].map((i) => (
+                            <button
+                              key={`their-h1-${i}`}
+                              type="button"
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && toggleHalfTimeout("their", "h1", i)}
+                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                                                i < theirH1
+                                                  ? "bg-muted-foreground text-background border-muted-foreground"
+                                                  : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
+                                              }`}
+                            >
+                              <span className="print-hide-val">{i < theirH1 ? "✓" : i + 1}</span>
+                              <span className="print-show-box"></span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground uppercase font-medium">2nd:</span>
+                        <div className="flex gap-1">
+                          {[0, 1].map((i) => (
+                            <button
+                              key={`their-h2-${i}`}
+                              type="button"
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && toggleHalfTimeout("their", "h2", i)}
+                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                                                i < theirH2
+                                                  ? "bg-muted-foreground text-background border-muted-foreground"
+                                                  : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
+                                              }`}
+                            >
+                              <span className="print-hide-val">{i < theirH2 ? "✓" : i + 1}</span>
+                              <span className="print-show-box"></span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* ── Main 24-Row Grid Table ─────────────────────────────────── */}
             <div className="print:hidden">
               <button
@@ -2809,210 +3015,8 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               </table>
             </div>
 
-            {/* ── Bottom Tracking Panels (1st & 2nd Half Timeouts, Totals, Notes) ── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 paper-bottom-grid">
-              {/* Timeout Tracking Boxes - 1st & 2nd Half (2 per each) */}
-              <div className="p-3 rounded-lg border border-border bg-card space-y-2">
-                <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                  Timeouts (1st Half / 2nd Half)
-                </div>
-                <div className="space-y-2 text-xs">
-                  {/* Ignite Timeouts */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground">{teamName}:</span>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground uppercase font-medium">1st:</span>
-                        <div className="flex gap-1">
-                          {[0, 1].map((i) => (
-                            <button
-                              key={`our-h1-${i}`}
-                              type="button"
-                              disabled={isReadOnly}
-                              onClick={() => !isReadOnly && toggleHalfTimeout("our", "h1", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
-                                                i < ourH1
-                                                  ? "bg-primary text-primary-foreground border-primary"
-                                                  : "bg-background border-border hover:border-primary/50 text-muted-foreground"
-                                              }`}
-                            >
-                              <span className="print-hide-val">{i < ourH1 ? "✓" : i + 1}</span>
-                              <span className="print-show-box"></span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground uppercase font-medium">2nd:</span>
-                        <div className="flex gap-1">
-                          {[0, 1].map((i) => (
-                            <button
-                              key={`our-h2-${i}`}
-                              type="button"
-                              disabled={isReadOnly}
-                              onClick={() => !isReadOnly && toggleHalfTimeout("our", "h2", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
-                                                i < ourH2
-                                                  ? "bg-primary text-primary-foreground border-primary"
-                                                  : "bg-background border-border hover:border-primary/50 text-muted-foreground"
-                                              }`}
-                            >
-                              <span className="print-hide-val">{i < ourH2 ? "✓" : i + 1}</span>
-                              <span className="print-show-box"></span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Opponent Timeouts */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground">{opponentName || "Opponent"}:</span>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground uppercase font-medium">1st:</span>
-                        <div className="flex gap-1">
-                          {[0, 1].map((i) => (
-                            <button
-                              key={`their-h1-${i}`}
-                              type="button"
-                              disabled={isReadOnly}
-                              onClick={() => !isReadOnly && toggleHalfTimeout("their", "h1", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
-                                                i < theirH1
-                                                  ? "bg-muted-foreground text-background border-muted-foreground"
-                                                  : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
-                                              }`}
-                            >
-                              <span className="print-hide-val">{i < theirH1 ? "✓" : i + 1}</span>
-                              <span className="print-show-box"></span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground uppercase font-medium">2nd:</span>
-                        <div className="flex gap-1">
-                          {[0, 1].map((i) => (
-                            <button
-                              key={`their-h2-${i}`}
-                              type="button"
-                              disabled={isReadOnly}
-                              onClick={() => !isReadOnly && toggleHalfTimeout("their", "h2", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
-                                                i < theirH2
-                                                  ? "bg-muted-foreground text-background border-muted-foreground"
-                                                  : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
-                                              }`}
-                            >
-                              <span className="print-hide-val">{i < theirH2 ? "✓" : i + 1}</span>
-                              <span className="print-show-box"></span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Game Stats & Summary */}
-              <div className="p-3 rounded-lg border border-border bg-card space-y-2">
-                <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                  Score & Point Stats
-                </div>
-                {/* On-screen view: calculated totals */}
-                <div className="print:hidden space-y-2">
-                  <div className="grid grid-cols-2 gap-1.5 text-center">
-                    <div className="p-1.5 rounded border border-border/60 bg-muted/20">
-                      <div className="text-[10px] text-muted-foreground">{teamName} Score</div>
-                      <div className="text-base font-bold text-amber-600">{totalOurScore}</div>
-                      <div className="text-[10px] font-medium flex items-center justify-center gap-1 text-muted-foreground">
-                        <span>Holds: <strong className="text-emerald-600">{ourHoldsCount}</strong></span>
-                        <span>·</span>
-                        <span>Breaks: <strong className="text-blue-600">{ourBreaksCount}</strong></span>
-                      </div>
-                    </div>
-                    <div className="p-1.5 rounded border border-border/60 bg-muted/20">
-                      <div className="text-[10px] text-muted-foreground">{opponentName ? opponentName.slice(0, 10) : "Opponent"} Score</div>
-                      <div className="text-base font-bold text-rose-600">{totalTheirScore}</div>
-                      <div className="text-[10px] font-medium flex items-center justify-center gap-1 text-muted-foreground">
-                        <span>Holds: <strong className="text-rose-600">{theirHoldsCount}</strong></span>
-                        <span>·</span>
-                        <span>Breaks: <strong className="text-purple-600">{theirBreaksCount}</strong></span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
-                    <div className="p-1 rounded border border-border/50 bg-emerald-500/10">
-                      <div className="text-muted-foreground">Us Hold</div>
-                      <div className="font-bold text-emerald-600">{ourHoldsCount}</div>
-                    </div>
-                    <div className="p-1 rounded border border-border/50 bg-blue-500/10">
-                      <div className="text-muted-foreground">Us Break</div>
-                      <div className="font-bold text-blue-600">{ourBreaksCount}</div>
-                    </div>
-                    <div className="p-1 rounded border border-border/50 bg-rose-500/10">
-                      <div className="text-muted-foreground">Opp Hold</div>
-                      <div className="font-bold text-rose-600">{theirHoldsCount}</div>
-                    </div>
-                    <div className="p-1 rounded border border-border/50 bg-purple-500/10">
-                      <div className="text-muted-foreground">Opp Break</div>
-                      <div className="font-bold text-purple-600">{theirBreaksCount}</div>
-                    </div>
-                  </div>
-                  {halfIdx != null && h1OurScore != null && h1TheirScore != null && h2OurScore != null && h2TheirScore != null && (
-                    <div className="grid grid-cols-2 gap-1 text-center text-[10px]">
-                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
-                        <div className="text-muted-foreground font-medium">½ 1st Half</div>
-                        <div className="font-bold">
-                          <span className="text-amber-600">{h1OurScore}</span>
-                          <span className="text-muted-foreground mx-1">–</span>
-                          <span className="text-rose-600">{h1TheirScore}</span>
-                        </div>
-                      </div>
-                      <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
-                        <div className="text-muted-foreground font-medium">½ 2nd Half</div>
-                        <div className="font-bold">
-                          <span className="text-amber-600">{h2OurScore}</span>
-                          <span className="text-muted-foreground mx-1">–</span>
-                          <span className="text-rose-600">{h2TheirScore}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Print view: fill-in blank boxes */}
-                <div className="hidden print:grid grid-cols-6 gap-1 text-center">
-                  <div className="p-1 rounded border border-black/40">
-                    <div className="text-[6.5pt] font-semibold">{teamName}</div>
-                    <div className="h-3 border-b border-black/30 mt-0.5" />
-                  </div>
-                  <div className="p-1 rounded border border-black/40">
-                    <div className="text-[6.5pt] font-semibold">{opponentName ? opponentName.slice(0, 7) : "Opp"}</div>
-                    <div className="h-3 border-b border-black/30 mt-0.5" />
-                  </div>
-                  <div className="p-1 rounded border border-black/40">
-                    <div className="text-[6.5pt] font-semibold">Us Hold</div>
-                    <div className="h-3 border-b border-black/30 mt-0.5" />
-                  </div>
-                  <div className="p-1 rounded border border-black/40">
-                    <div className="text-[6.5pt] font-semibold">Us Break</div>
-                    <div className="h-3 border-b border-black/30 mt-0.5" />
-                  </div>
-                  <div className="p-1 rounded border border-black/40">
-                    <div className="text-[6.5pt] font-semibold">Opp Hold</div>
-                    <div className="h-3 border-b border-black/30 mt-0.5" />
-                  </div>
-                  <div className="p-1 rounded border border-black/40">
-                    <div className="text-[6.5pt] font-semibold">Opp Break</div>
-                    <div className="h-3 border-b border-black/30 mt-0.5" />
-                  </div>
-                </div>
-              </div>
-
+            {/* ── Bottom Tracking Panel (Game Notes) ── */}
+            <div className="pt-2 paper-bottom-grid">
               {/* Notes / Mark Box for Paper Printout */}
               <div className="p-3 rounded-lg border border-border bg-card space-y-1">
                 <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
