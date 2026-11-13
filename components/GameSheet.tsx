@@ -985,136 +985,140 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
 
       <div className="space-y-4">
         {/* ── Top controls (Filter tabs, Sheet Picker, Actions) ─────── */}
-        <div className="flex flex-wrap gap-2 items-center justify-between print:hidden border-b border-border pb-3">
-          {/* Active vs Archived Filters */}
-          <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border">
-            <button
-              type="button"
-              onClick={() => {
-                setSheetFilter("active")
-                const firstActive = sheets.find((s) => !s.sheet_data?.isArchived)
-                if (firstActive && getSheet(selectedSheetId)?.sheet_data?.isArchived) {
-                  switchSheet(firstActive.id)
-                }
-              }}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                sheetFilter === "active" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Active Sheets ({sheets.filter((s) => !s.sheet_data?.isArchived).length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSheetFilter("archived")
-                const firstArchived = sheets.find((s) => s.sheet_data?.isArchived)
-                if (firstArchived && !getSheet(selectedSheetId)?.sheet_data?.isArchived) {
-                  switchSheet(firstArchived.id)
-                }
-              }}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                sheetFilter === "archived" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Archived ({sheets.filter((s) => s.sheet_data?.isArchived).length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSheetFilter("all")}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                sheetFilter === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              All ({sheets.length})
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCreateBlank}
-              disabled={createPending}
-              className="px-3 py-1.5 rounded-md text-xs font-medium border border-border text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
-            >
-              {createPending ? "Creating…" : "+ New Blank Sheet"}
-            </button>
-          </div>
-        </div>
-
-        {/* ── Active Sheet Selection Bar ── */}
-        <div className="flex flex-wrap gap-2 items-center print:hidden">
-          <div className="flex items-center gap-2 flex-1 min-w-[260px]">
-            <span className="text-xs font-semibold text-muted-foreground uppercase whitespace-nowrap">Sheet:</span>
-            {filteredSheets.length > 0 ? (
-              <select
-                value={selectedSheetId || (filteredSheets[0]?.id ?? "")}
-                onChange={(e) => switchSheet(e.target.value)}
-                className="flex-1 border border-input rounded-md px-2.5 py-1.5 text-sm bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {filteredSheets.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.sheet_data?.isArchived ? "🔒 [Archived] " : ""}{sheetLabel(s)}
-                  </option>
-                ))}
-              </select>
-            ) : sheets.length > 0 ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground italic">No sheets in {sheetFilter} tab.</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSheetFilter("all")
-                    switchSheet(sheets[0].id)
-                  }}
-                  className="text-xs text-primary underline"
-                >
-                  View all sheets
-                </button>
-              </div>
-            ) : (
-              <span className="text-xs text-muted-foreground italic">No sheets yet — create one below.</span>
-            )}
-          </div>
-
-          {selectedSheetId && activeSheet && (
-            <div className="flex items-center gap-1.5">
+        {!gameMode && (
+          <div className="flex flex-wrap gap-2 items-center justify-between print:hidden border-b border-border pb-3">
+            {/* Active vs Archived Filters */}
+            <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border">
               <button
                 type="button"
                 onClick={() => {
-                  setTemplateName(`${sheetLabel(activeSheet)} (Copy)`)
-                  setShowTemplateModal(true)
+                  setSheetFilter("active")
+                  const firstActive = sheets.find((s) => !s.sheet_data?.isArchived)
+                  if (firstActive && getSheet(selectedSheetId)?.sheet_data?.isArchived) {
+                    switchSheet(firstActive.id)
+                  }
                 }}
-                disabled={clonePending}
-                className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                title="Duplicate roster and line setup into a new fresh game sheet"
-              >
-                📑 Use as Template
-              </button>
-
-              <button
-                type="button"
-                onClick={toggleArchiveStatus}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                  isArchived
-                    ? "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 hover:bg-amber-200"
-                    : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  sheetFilter === "active" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
-                title={isArchived ? "Unarchive and reopen for editing" : "Archive and lock for history"}
               >
-                {isArchived ? "🔒 Archived" : "📥 Archive Sheet"}
+                Active Sheets ({sheets.filter((s) => !s.sheet_data?.isArchived).length})
               </button>
-
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={deletePending}
-                className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
-                title="Delete this game sheet"
+                onClick={() => {
+                  setSheetFilter("archived")
+                  const firstArchived = sheets.find((s) => s.sheet_data?.isArchived)
+                  if (firstArchived && !getSheet(selectedSheetId)?.sheet_data?.isArchived) {
+                    switchSheet(firstArchived.id)
+                  }
+                }}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  sheetFilter === "archived" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                🗑
+                Archived ({sheets.filter((s) => s.sheet_data?.isArchived).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSheetFilter("all")}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  sheetFilter === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All ({sheets.length})
               </button>
             </div>
-          )}
-        </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCreateBlank}
+                disabled={createPending}
+                className="px-3 py-1.5 rounded-md text-xs font-medium border border-border text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
+              >
+                {createPending ? "Creating…" : "+ New Blank Sheet"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Active Sheet Selection Bar ── */}
+        {!gameMode && (
+          <div className="flex flex-wrap gap-2 items-center print:hidden">
+            <div className="flex items-center gap-2 flex-1 min-w-[260px]">
+              <span className="text-xs font-semibold text-muted-foreground uppercase whitespace-nowrap">Sheet:</span>
+              {filteredSheets.length > 0 ? (
+                <select
+                  value={selectedSheetId || (filteredSheets[0]?.id ?? "")}
+                  onChange={(e) => switchSheet(e.target.value)}
+                  className="flex-1 border border-input rounded-md px-2.5 py-1.5 text-sm bg-background text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {filteredSheets.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.sheet_data?.isArchived ? "🔒 [Archived] " : ""}{sheetLabel(s)}
+                    </option>
+                  ))}
+                </select>
+              ) : sheets.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground italic">No sheets in {sheetFilter} tab.</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSheetFilter("all")
+                      switchSheet(sheets[0].id)
+                    }}
+                    className="text-xs text-primary underline"
+                  >
+                    View all sheets
+                  </button>
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground italic">No sheets yet — create one below.</span>
+              )}
+            </div>
+
+            {selectedSheetId && activeSheet && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTemplateName(`${sheetLabel(activeSheet)} (Copy)`)
+                    setShowTemplateModal(true)
+                  }}
+                  disabled={clonePending}
+                  className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  title="Duplicate roster and line setup into a new fresh game sheet"
+                >
+                  📑 Use as Template
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleArchiveStatus}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                    isArchived
+                      ? "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 hover:bg-amber-200"
+                      : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                  title={isArchived ? "Unarchive and reopen for editing" : "Archive and lock for history"}
+                >
+                  {isArchived ? "🔒 Archived" : "📥 Archive Sheet"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deletePending}
+                  className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                  title="Delete this game sheet"
+                >
+                  🗑
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Template Modal */}
         {showTemplateModal && (
@@ -1191,7 +1195,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
         {selectedSheetId && activeSheet ? (
           <>
             {/* ── Archived Read-Only Banner ── */}
-            {isArchived && (
+            {!gameMode && isArchived && (
               <div className="p-3 rounded-lg border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 flex flex-wrap items-center justify-between gap-2 text-xs print:hidden shadow-sm">
                 <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
                   <span className="text-sm">🔒</span>
@@ -1223,260 +1227,236 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               </div>
             )}
 
-            {/* ── Metadata & Configuration Bar + Live Mode Button ──────── */}
-            <div className="flex gap-3 items-stretch print:hidden">
+            {/* ── Metadata & Configuration Bar ──────── */}
+            {!gameMode && (
+              <div className="flex flex-wrap gap-3 items-end p-3 rounded-lg border border-border bg-card print:hidden">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">Sheet Title / Label</label>
+                  <input
+                    type="text"
+                    value={sheetTitle}
+                    disabled={isReadOnly}
+                    onChange={(e) => {
+                      setSheetTitle(e.target.value)
+                      const next = { ...displayData, customTitle: e.target.value }
+                      setData(next)
+                      save({ sheet_data: next })
+                    }}
+                    placeholder="e.g. Finals vs Furious"
+                    className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-44 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
 
-              {/* Metadata panel */}
-              <div className="flex flex-wrap gap-3 items-end p-3 rounded-lg border border-border bg-card flex-1 min-w-0">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground font-medium">Sheet Title / Label</label>
-                <input
-                  type="text"
-                  value={sheetTitle}
-                  disabled={isReadOnly}
-                  onChange={(e) => {
-                    setSheetTitle(e.target.value)
-                    const next = { ...displayData, customTitle: e.target.value }
-                    setData(next)
-                    save({ sheet_data: next })
-                  }}
-                  placeholder="e.g. Finals vs Furious"
-                  className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-44 disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-              </div>
+                {/* Tournament Name */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">Tournament</label>
+                  <input
+                    type="text"
+                    value={tournamentName}
+                    disabled={isReadOnly}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setTournamentName(val)
+                      setSheets((prev) =>
+                        prev.map((s) => s.id === selectedSheetId ? { ...s, tournament_name: val } : s)
+                      )
+                      save({ tournament_name: val })
+                    }}
+                    placeholder="e.g. Winter League"
+                    className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-40 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">Opponent</label>
+                  <input
+                    type="text"
+                    value={opponentName}
+                    disabled={isReadOnly}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setOpponentName(val)
+                      setSheets((prev) =>
+                        prev.map((s) => s.id === selectedSheetId ? { ...s, opponent_name: val } : s)
+                      )
+                      save({ opponent_name: val })
+                    }}
+                    placeholder="e.g. Rival Club"
+                    className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-36 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
 
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">Field</label>
+                  <input
+                    type="text"
+                    value={fieldName}
+                    disabled={isReadOnly}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setFieldName(val)
+                      save({ field: val })
+                    }}
+                    placeholder="e.g. Field 4"
+                    className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-28 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
 
-              {/* Tournament Name */}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground font-medium">Tournament</label>
-                <input
-                  type="text"
-                  value={tournamentName}
-                  disabled={isReadOnly}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setTournamentName(val)
-                    setSheets((prev) =>
-                      prev.map((s) => s.id === selectedSheetId ? { ...s, tournament_name: val } : s)
-                    )
-                    save({ tournament_name: val })
-                  }}
-                  placeholder="e.g. Winter League"
-                  className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-40 disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground font-medium">Opponent</label>
-                <input
-                  type="text"
-                  value={opponentName}
-                  disabled={isReadOnly}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setOpponentName(val)
-                    setSheets((prev) =>
-                      prev.map((s) => s.id === selectedSheetId ? { ...s, opponent_name: val } : s)
-                    )
-                    save({ opponent_name: val })
-                  }}
-                  placeholder="e.g. Rival Club"
-                  className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-36 disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-              </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">
+                    Points: <span className="font-bold text-foreground">{activePoints}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={minPoints}
+                    max={maxPoints}
+                    value={activePoints}
+                    disabled={isReadOnly}
+                    onChange={(e) => {
+                      const n = Number(e.target.value)
+                      setActivePoints(n)
+                      saveData({ ...data, totalPoints: n })
+                    }}
+                    className="w-20 accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground font-medium">Field</label>
-                <input
-                  type="text"
-                  value={fieldName}
-                  disabled={isReadOnly}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setFieldName(val)
-                    save({ field: val })
-                  }}
-                  placeholder="e.g. Field 4"
-                  className="border border-input rounded-md px-2 py-1.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-28 disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground font-medium">
-                  Points: <span className="font-bold text-foreground">{activePoints}</span>
-                </label>
-                <input
-                  type="range"
-                  min={minPoints}
-                  max={maxPoints}
-                  value={activePoints}
-                  disabled={isReadOnly}
-                  onChange={(e) => {
-                    const n = Number(e.target.value)
-                    setActivePoints(n)
-                    saveData({ ...data, totalPoints: n })
-                  }}
-                  className="w-20 accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 ml-auto">
-                <button
-                  type="button"
-                  onClick={() => setShowDividerControls((v) => !v)}
-                  disabled={isReadOnly}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    showDividerControls ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground hover:bg-accent"
-                  }`}
-                  title="Configure line dividers"
-                >
-                  ✂ Line Splits
-                </button>
-                <button
-                  type="button"
-                  disabled={isReadOnly}
-                  onClick={() => setShowPresetManager((v) => !v)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    showPresetManager ? "bg-amber-500/10 border-amber-500 text-amber-700 dark:text-amber-300" : "border-border text-muted-foreground hover:bg-accent"
-                  }`}
-                  title="Manage named line presets (Power O, Power D, etc.)"
-                >
-                  ⚡ Presets ({(data.linePresets ?? []).length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowRosterBench((v) => !v)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                    showRosterBench ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  👥 Bench ({unassignedTeamPlayers.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSummaryModal(true)}
-                  className="px-3 py-1.5 rounded-md text-xs font-medium border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary transition-colors shadow-sm"
-                  title="View post-game player points, holds, and break breakdown"
-                >
-                  📊 Summary & Stats
-                </button>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  🖨 Print
-                </button>
-              </div>
-              </div>{/* end metadata panel */}
-
-              {/* Live Mode square button — own panel */}
-              <button
-                type="button"
-                onClick={() => {
-                  const entering = !gameMode
-                  if (entering) {
-                    setGridWasCollapsedBeforeLive(isGridCollapsed)
-                    setIsGridCollapsed(true)
-                  } else {
-                    setIsGridCollapsed(gridWasCollapsedBeforeLive)
-                  }
-                  setGameMode(entering)
-                }}
-                className={`aspect-square w-24 shrink-0 rounded-lg border-2 font-bold transition-all shadow-sm flex flex-col items-center justify-center gap-1.5 ${
-                  gameMode
-                    ? "bg-amber-600 border-amber-500 text-white hover:bg-amber-700 ring-2 ring-amber-400"
-                    : "bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700"
-                }`}
-              >
-                <span className="text-2xl leading-none">{gameMode ? "📋" : "⚡"}</span>
-                <span className="text-xs font-bold leading-tight text-center px-1">{gameMode ? "Exit Live" : "Live Mode"}</span>
-              </button>
-            </div>
-
-            {/* Offline Sync Status Banner & Precache */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 print:hidden">
-              <SyncStatusBadge
-                onPrecache={handlePrecacheTournament}
-                isPrecaching={isPrecaching}
-              />
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">Initial Pull/Start:</span>
-                <button
-                  type="button"
-                  disabled={isReadOnly}
-                  onClick={toggleStartingPossession}
-                  className={`px-2.5 py-1 rounded text-xs font-bold uppercase transition-all disabled:opacity-50 ${
-                    (displayData.startingPossession || "offense") === "offense"
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "bg-blue-600 text-white shadow-sm"
-                  }`}
-                  title="Click to toggle starting on Offense or Defense"
-                >
-                  {(displayData.startingPossession || "offense") === "offense" ? "Start On Offense (O)" : "Start On Defense (D)"}
-                </button>
-                <button
-                  type="button"
-                  disabled={isReadOnly}
-                  onClick={toggleStartingEnd}
-                  className={`px-2.5 py-1 rounded text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 ${
-                    displayData.startingEnd === "left"
-                      ? "bg-violet-600 text-white shadow-sm"
-                      : displayData.startingEnd === "right"
-                      ? "bg-orange-600 text-white shadow-sm"
-                      : "bg-muted text-muted-foreground border border-border"
-                  }`}
-                  title="Click to set which end the team started at (cycles: Left → Right → unset)"
-                >
-                  {displayData.startingEnd === "left" ? (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                      <span>Started</span>
-                    </>
-                  ) : displayData.startingEnd === "right" ? (
-                    <>
-                      <span>Started</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="9 5 3 12 9 19"/><polyline points="15 5 21 12 15 19"/></svg>
-                      <span>End</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  disabled={isReadOnly}
-                  onClick={toggleGenderRatio}
-                  className={`px-2.5 py-1 rounded text-xs font-bold transition-all disabled:opacity-50 ${
-                    displayData.genderRatioEnabled
-                      ? "bg-pink-600 text-white shadow-sm"
-                      : "bg-muted text-muted-foreground border border-border"
-                  }`}
-                  title={playersPerSide === 4 ? "Toggle gender ratio enforcement (2F/2M)" : "Toggle gender ratio enforcement (FMP/MMP alternating)"}
-                >
-                  ⚥ Ratio {displayData.genderRatioEnabled ? "On" : "Off"}
-                </button>
-                {displayData.genderRatioEnabled && playersPerSide === 7 && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowDividerControls((v) => !v)}
+                    disabled={isReadOnly}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      showDividerControls ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground hover:bg-accent"
+                    }`}
+                    title="Configure line dividers"
+                  >
+                    ✂ Line Splits
+                  </button>
                   <button
                     type="button"
                     disabled={isReadOnly}
-                    onClick={() => setStartingRatio(
-                      (displayData.startingRatio ?? "4fmp-3mmp") === "4fmp-3mmp" ? "3fmp-4mmp" : "4fmp-3mmp"
-                    )}
-                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all disabled:opacity-50 ${
-                      (displayData.startingRatio ?? "4fmp-3mmp") === "4fmp-3mmp"
-                        ? "bg-pink-500 text-white shadow-sm"
-                        : "bg-blue-500 text-white shadow-sm"
+                    onClick={() => setShowPresetManager((v) => !v)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      showPresetManager ? "bg-amber-500/10 border-amber-500 text-amber-700 dark:text-amber-300" : "border-border text-muted-foreground hover:bg-accent"
                     }`}
-                    title="Click to toggle starting gender ratio"
+                    title="Manage named line presets (Power O, Power D, etc.)"
                   >
-                    {(displayData.startingRatio ?? "4fmp-3mmp") === "4fmp-3mmp" ? "Start 4F/3M" : "Start 3F/4M"}
+                    ⚡ Presets ({(data.linePresets ?? []).length})
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setShowRosterBench((v) => !v)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                      showRosterBench ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    👥 Bench ({unassignedTeamPlayers.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSummaryModal(true)}
+                    className="px-3 py-1.5 rounded-md text-xs font-medium border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary transition-colors shadow-sm"
+                    title="View post-game player points, holds, and break breakdown"
+                  >
+                    📊 Summary & Stats
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                  >
+                    🖨 Print
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Offline Sync Status Banner & Precache */}
+            {!gameMode && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 print:hidden">
+                <SyncStatusBadge
+                  onPrecache={handlePrecacheTournament}
+                  isPrecaching={isPrecaching}
+                />
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Initial Pull/Start:</span>
+                  <button
+                    type="button"
+                    disabled={isReadOnly}
+                    onClick={toggleStartingPossession}
+                    className={`px-2.5 py-1 rounded text-xs font-bold uppercase transition-all disabled:opacity-50 ${
+                      (displayData.startingPossession || "offense") === "offense"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "bg-blue-600 text-white shadow-sm"
+                    }`}
+                    title="Click to toggle starting on Offense or Defense"
+                  >
+                    {(displayData.startingPossession || "offense") === "offense" ? "Start On Offense (O)" : "Start On Defense (D)"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isReadOnly}
+                    onClick={toggleStartingEnd}
+                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 ${
+                      displayData.startingEnd === "left"
+                        ? "bg-violet-600 text-white shadow-sm"
+                        : displayData.startingEnd === "right"
+                        ? "bg-orange-600 text-white shadow-sm"
+                        : "bg-muted text-muted-foreground border border-border"
+                    }`}
+                    title="Click to set which end the team started at (cycles: Left → Right → unset)"
+                  >
+                    {displayData.startingEnd === "left" ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        <span>Started</span>
+                      </>
+                    ) : displayData.startingEnd === "right" ? (
+                      <>
+                        <span>Started</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="9 5 3 12 9 19"/><polyline points="15 5 21 12 15 19"/></svg>
+                        <span>End</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isReadOnly}
+                    onClick={toggleGenderRatio}
+                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all disabled:opacity-50 ${
+                      displayData.genderRatioEnabled
+                        ? "bg-pink-600 text-white shadow-sm"
+                        : "bg-muted text-muted-foreground border border-border"
+                    }`}
+                    title={playersPerSide === 4 ? "Toggle gender ratio enforcement (2F/2M)" : "Toggle gender ratio enforcement (FMP/MMP alternating)"}
+                  >
+                    ⚥ Ratio {displayData.genderRatioEnabled ? "On" : "Off"}
+                  </button>
+                  {displayData.genderRatioEnabled && playersPerSide === 7 && (
+                    <button
+                      type="button"
+                      disabled={isReadOnly}
+                      onClick={() => setStartingRatio(
+                        (displayData.startingRatio ?? "4fmp-3mmp") === "4fmp-3mmp" ? "3fmp-4mmp" : "4fmp-3mmp"
+                      )}
+                      className={`px-2.5 py-1 rounded text-xs font-bold transition-all disabled:opacity-50 ${
+                        (displayData.startingRatio ?? "4fmp-3mmp") === "4fmp-3mmp"
+                          ? "bg-pink-500 text-white shadow-sm"
+                          : "bg-blue-500 text-white shadow-sm"
+                      }`}
+                      title="Click to toggle starting gender ratio"
+                    >
+                      {(displayData.startingRatio ?? "4fmp-3mmp") === "4fmp-3mmp" ? "Start 4F/3M" : "Start 3F/4M"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* ── Print Header ─────────────────────────────────────────── */}
             <div className="sheet-header-print items-center justify-between border-b-2 border-black pb-1 mb-1">
@@ -1492,10 +1472,10 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               </div>
             </div>
 
-            {/* ── Top Tracking Panels (Score leftmost, Timeouts right) ── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 paper-top-grid">
-              {/* Game Stats & Summary (Score & Point Stats leftmost, 2/3 width) */}
-              <div className="p-2 sm:p-2.5 rounded-lg border border-border bg-card space-y-1 md:col-span-2 flex flex-col justify-between">
+            {/* ── Top Tracking Panels (Score leftmost, Timeouts, Live Mode) ── */}
+            <div className="flex flex-col md:flex-row gap-3 paper-top-grid items-stretch">
+              {/* Game Stats & Summary (Score & Point Stats leftmost) */}
+              <div className="p-2 sm:p-2.5 rounded-lg border border-border bg-card space-y-1 flex-1 min-w-0 flex flex-col justify-between">
                 <div className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
                   Score & Point Stats
                 </div>
@@ -1582,8 +1562,8 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                 </div>
               </div>
 
-              {/* Timeout Tracking Boxes - 1st & 2nd Half (1/3 width) */}
-              <div className="p-2 sm:p-2.5 rounded-lg border border-border bg-card space-y-1 md:col-span-1 flex flex-col justify-between">
+              {/* Timeout Tracking Boxes - 1st & 2nd Half */}
+              <div className="p-2 sm:p-2.5 rounded-lg border border-border bg-card space-y-1 shrink-0 md:min-w-[260px] flex flex-col justify-between">
                 <div className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
                   Timeouts
                 </div>
@@ -1626,7 +1606,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                                 i < ourH2
                                                   ? "bg-primary text-primary-foreground border-primary"
                                                   : "bg-background border-border hover:border-primary/50 text-muted-foreground"
-                                              }`}
+                              }`}
                             >
                               <span className="print-hide-val">{i < ourH2 ? "✓" : i + 1}</span>
                               <span className="print-show-box"></span>
@@ -1654,7 +1634,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                                 i < theirH1
                                                   ? "bg-muted-foreground text-background border-muted-foreground"
                                                   : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
-                                              }`}
+                              }`}
                             >
                               <span className="print-hide-val">{i < theirH1 ? "✓" : i + 1}</span>
                               <span className="print-show-box"></span>
@@ -1675,7 +1655,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                                 i < theirH2
                                                   ? "bg-muted-foreground text-background border-muted-foreground"
                                                   : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
-                                              }`}
+                              }`}
                             >
                               <span className="print-hide-val">{i < theirH2 ? "✓" : i + 1}</span>
                               <span className="print-show-box"></span>
@@ -1687,6 +1667,30 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                   </div>
                 </div>
               </div>
+
+              {/* Live Mode toggle button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const entering = !gameMode
+                  if (entering) {
+                    setGridWasCollapsedBeforeLive(isGridCollapsed)
+                    setIsGridCollapsed(true)
+                  } else {
+                    setIsGridCollapsed(gridWasCollapsedBeforeLive)
+                  }
+                  setGameMode(entering)
+                }}
+                className={`p-3 rounded-lg border-2 font-bold transition-all shadow-sm flex flex-row md:flex-col items-center justify-center gap-1.5 shrink-0 print:hidden md:w-24 ${
+                  gameMode
+                    ? "bg-amber-600 border-amber-500 text-white hover:bg-amber-700 ring-2 ring-amber-400"
+                    : "bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700"
+                }`}
+                title={gameMode ? "Exit Live Sideline Mode and view full game sheet" : "Enter Live Sideline Mode"}
+              >
+                <span className="text-xl md:text-2xl leading-none">{gameMode ? "📋" : "⚡"}</span>
+                <span className="text-xs font-bold leading-tight text-center px-1 whitespace-nowrap">{gameMode ? "Exit Live" : "Live Mode"}</span>
+              </button>
             </div>
 
             {/* ── LIVE SIDELINE "GAME MODE" (Tablet & Mobile Optimized) ── */}
