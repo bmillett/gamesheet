@@ -945,7 +945,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
           .print-blank-box { width: 100% !important; height: 11px !important; border: 1px solid #777 !important; display: block !important; }
           .print-show-box { display: block !important; }
           .print-hide-val { display: none !important; }
-          .paper-top-grid { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 4px !important; margin-bottom: 4px !important; }
+          .paper-top-grid { display: grid !important; grid-template-columns: 3fr 2fr !important; gap: 4px !important; margin-bottom: 4px !important; }
           .paper-bottom-grid { display: block !important; margin-top: 4px !important; }
         }
         @media screen {
@@ -1464,41 +1464,65 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
             </div>
 
             {/* ── Top Tracking Panels (Score leftmost, Timeouts right) ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 paper-top-grid">
-              {/* Game Stats & Summary (Score & Point Stats leftmost) */}
-              <div className="p-3 rounded-lg border border-border bg-card space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 paper-top-grid">
+              {/* Game Stats & Summary (Score & Point Stats leftmost, 2/3 width) */}
+              <div className="p-3 rounded-lg border border-border bg-card space-y-2 md:col-span-2 flex flex-col justify-between">
                 <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
                   Score & Point Stats
                 </div>
-                {/* On-screen view: compact calculated totals */}
+                {/* On-screen view: side-by-side score + prominent hold/break badges */}
                 <div className="print:hidden space-y-2">
-                  <div className="grid grid-cols-2 gap-2 text-center">
-                    <div className="p-2 rounded border border-border/60 bg-muted/20">
-                      <div className="text-[11px] text-muted-foreground font-medium truncate">{teamName}</div>
-                      <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-tight my-0.5">{totalOurScore}</div>
-                      <div className="text-[10px] flex items-center justify-center gap-1.5 text-muted-foreground">
-                        <span>H: <strong className="text-emerald-600 dark:text-emerald-400">{ourHoldsCount}</strong></span>
-                        <span>·</span>
-                        <span>B: <strong className="text-blue-600 dark:text-blue-400">{ourBreaksCount}</strong></span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Us */}
+                    <div className="p-2.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs text-muted-foreground font-semibold truncate">{teamName}</div>
+                        <div className="text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-none mt-1">
+                          {totalOurScore}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Holds</span>
+                          <span className="text-sm font-bold tabular-nums">{ourHoldsCount}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-semibold">
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Breaks</span>
+                          <span className="text-sm font-bold tabular-nums">{ourBreaksCount}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-2 rounded border border-border/60 bg-muted/20">
-                      <div className="text-[11px] text-muted-foreground font-medium truncate">{opponentName || "Opponent"}</div>
-                      <div className="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-tight my-0.5">{totalTheirScore}</div>
-                      <div className="text-[10px] flex items-center justify-center gap-1.5 text-muted-foreground">
-                        <span>H: <strong className="text-rose-600 dark:text-rose-400">{theirHoldsCount}</strong></span>
-                        <span>·</span>
-                        <span>B: <strong className="text-purple-600 dark:text-purple-400">{theirBreaksCount}</strong></span>
+
+                    {/* Them */}
+                    <div className="p-2.5 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs text-muted-foreground font-semibold truncate">{opponentName || "Opponent"}</div>
+                        <div className="text-3xl font-black text-rose-600 dark:text-rose-400 tabular-nums leading-none mt-1">
+                          {totalTheirScore}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-500/10 text-rose-700 dark:text-rose-400 text-xs font-semibold">
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Holds</span>
+                          <span className="text-sm font-bold tabular-nums">{theirHoldsCount}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-400 text-xs font-semibold">
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Breaks</span>
+                          <span className="text-sm font-bold tabular-nums">{theirBreaksCount}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
+
                   {halfIdx != null && h1OurScore != null && h1TheirScore != null && h2OurScore != null && h2TheirScore != null && (
-                    <div className="grid grid-cols-2 gap-1 text-center text-[10px]">
+                    <div className="grid grid-cols-2 gap-1 text-center text-[10px] pt-0.5">
                       <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
-                        <div className="text-muted-foreground font-medium">½ 1st Half: <span className="font-bold text-foreground">{h1OurScore}–{h1TheirScore}</span></div>
+                        <span className="text-muted-foreground font-medium">½ 1st Half: </span>
+                        <span className="font-bold text-foreground">{h1OurScore}–{h1TheirScore}</span>
                       </div>
                       <div className="p-1 rounded border border-purple-500/40 bg-purple-500/10">
-                        <div className="text-muted-foreground font-medium">½ 2nd Half: <span className="font-bold text-foreground">{h2OurScore}–{h2TheirScore}</span></div>
+                        <span className="text-muted-foreground font-medium">½ 2nd Half: </span>
+                        <span className="font-bold text-foreground">{h2OurScore}–{h2TheirScore}</span>
                       </div>
                     </div>
                   )}
@@ -1533,16 +1557,16 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                 </div>
               </div>
 
-              {/* Timeout Tracking Boxes - 1st & 2nd Half (2 per each) */}
-              <div className="p-3 rounded-lg border border-border bg-card space-y-2">
+              {/* Timeout Tracking Boxes - 1st & 2nd Half (1/3 width) */}
+              <div className="p-3 rounded-lg border border-border bg-card space-y-2 md:col-span-1 flex flex-col justify-between">
                 <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                  Timeouts (1st Half / 2nd Half)
+                  Timeouts
                 </div>
                 <div className="space-y-2 text-xs">
                   {/* Ignite Timeouts */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground">{teamName}:</span>
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-foreground truncate text-xs">{teamName}:</span>
+                    <div className="flex items-center gap-2 shrink-0">
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-muted-foreground uppercase font-medium">1st:</span>
                         <div className="flex gap-1">
@@ -1552,7 +1576,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                               type="button"
                               disabled={isReadOnly}
                               onClick={() => !isReadOnly && toggleHalfTimeout("our", "h1", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                              className={`w-7 h-7 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
                                                 i < ourH1
                                                   ? "bg-primary text-primary-foreground border-primary"
                                                   : "bg-background border-border hover:border-primary/50 text-muted-foreground"
@@ -1573,7 +1597,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                               type="button"
                               disabled={isReadOnly}
                               onClick={() => !isReadOnly && toggleHalfTimeout("our", "h2", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                              className={`w-7 h-7 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
                                                 i < ourH2
                                                   ? "bg-primary text-primary-foreground border-primary"
                                                   : "bg-background border-border hover:border-primary/50 text-muted-foreground"
@@ -1589,9 +1613,9 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                   </div>
 
                   {/* Opponent Timeouts */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground">{opponentName || "Opponent"}:</span>
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-foreground truncate text-xs">{opponentName || "Opp"}:</span>
+                    <div className="flex items-center gap-2 shrink-0">
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-muted-foreground uppercase font-medium">1st:</span>
                         <div className="flex gap-1">
@@ -1601,7 +1625,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                               type="button"
                               disabled={isReadOnly}
                               onClick={() => !isReadOnly && toggleHalfTimeout("their", "h1", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                              className={`w-7 h-7 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
                                                 i < theirH1
                                                   ? "bg-muted-foreground text-background border-muted-foreground"
                                                   : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
@@ -1622,7 +1646,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                               type="button"
                               disabled={isReadOnly}
                               onClick={() => !isReadOnly && toggleHalfTimeout("their", "h2", i)}
-                              className={`w-8 h-8 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
+                              className={`w-7 h-7 rounded border flex items-center justify-center font-bold text-xs transition-colors disabled:cursor-not-allowed ${
                                                 i < theirH2
                                                   ? "bg-muted-foreground text-background border-muted-foreground"
                                                   : "bg-background border-border hover:border-foreground/50 text-muted-foreground"
