@@ -17,9 +17,9 @@
  *    - Large, high-contrast sideline UI optimized for tablets and phones.
  *    - Quick point scorer buttons (+1 Ignite / +1 Opponent), Hold / Break toggles.
  *    - Point navigation & live roster substitution checkboxes.
- * 7. Active / Archived Filter & Historical Management:
- *    - Filter tabs: Active Sheets vs Archived Sheets.
- *    - Finalize / Archive / Unarchive toggle.
+ * 7. Active / Finalized Filter & Historical Management:
+ *    - Filter tabs: Active Sheets vs Finalized Sheets.
+ *    - Finalize / Un-finalize toggle.
  *    - Duplicate / Use as Template (copies roster setup & dividers to a fresh game).
  *    - Sheet title & opponent name instant reactive update.
  *    - Delete sheet with confirmation modal.
@@ -156,7 +156,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   const [sheets, setSheets] = useState<SheetEntry[]>(initialSheets)
 
   // Initialize filter: if first sheet is archived, default to all or active
-  const [sheetFilter, setSheetFilter] = useState<"all" | "active" | "archived">("active")
+  const [sheetFilter, setSheetFilter] = useState<"all" | "active" | "finalized">("active")
   const [gameMode, setGameMode] = useState<boolean>(false)
   const [isGameModeCollapsed, setIsGameModeCollapsed] = useState<boolean>(false)
   const [selectedLivePoint, setSelectedLivePoint] = useState<number>(0) // 0-based point index for live mode
@@ -344,6 +344,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
         tournamentName: patch.tournament_name !== undefined ? patch.tournament_name : tournamentName,
         field: patch.field !== undefined ? patch.field : fieldName,
         isArchived,
+        excludeFromStats: Boolean(targetData.excludeFromStats),
       }).catch((err) => {
         console.warn("[GameSheet] Failed to write local offline sheet:", err)
       })
@@ -388,16 +389,20 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
     save({ sheet_data: next })
   }
 
-  function toggleArchiveStatus() {
-    const nextArchived = !data.isArchived
-    const nextData = { ...data, isArchived: nextArchived }
-    // When unarchiving, unlock editing
-    if (!nextArchived) {
+  function toggleFinalizeStatus() {
+    const nextFinalized = !data.isArchived
+    const nextData = { ...data, isArchived: nextFinalized }
+    // When un-finalizing, unlock editing
+    if (!nextFinalized) {
       setIsEditingArchived(true)
     } else {
       setIsEditingArchived(false)
     }
     saveData(nextData)
+  }
+
+  function toggleExcludeFromStats() {
+    saveData({ ...data, excludeFromStats: !data.excludeFromStats })
   }
 
   const isArchived = Boolean(data.isArchived)
@@ -949,7 +954,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
   // Filter sheets for switcher
   const filteredSheets = sheets.filter((s) => {
     if (sheetFilter === "active") return !s.sheet_data?.isArchived
-    if (sheetFilter === "archived") return !!s.sheet_data?.isArchived
+    if (sheetFilter === "finalized") return !!s.sheet_data?.isArchived
     return true
   })
 
@@ -987,7 +992,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
         {/* ── Top controls (Filter tabs, Sheet Picker, Actions) ─────── */}
         {!gameMode && (
           <div className="flex flex-wrap gap-2 items-center justify-between print:hidden border-b border-border pb-3">
-            {/* Active vs Archived Filters */}
+            {/* Active vs Finalized Filters */}
             <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border">
               <button
                 type="button"
@@ -1007,17 +1012,17 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
               <button
                 type="button"
                 onClick={() => {
-                  setSheetFilter("archived")
-                  const firstArchived = sheets.find((s) => s.sheet_data?.isArchived)
-                  if (firstArchived && !getSheet(selectedSheetId)?.sheet_data?.isArchived) {
-                    switchSheet(firstArchived.id)
+                  setSheetFilter("finalized")
+                  const firstFinalized = sheets.find((s) => s.sheet_data?.isArchived)
+                  if (firstFinalized && !getSheet(selectedSheetId)?.sheet_data?.isArchived) {
+                    switchSheet(firstFinalized.id)
                   }
                 }}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                  sheetFilter === "archived" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  sheetFilter === "finalized" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Archived ({sheets.filter((s) => s.sheet_data?.isArchived).length})
+                Finalized ({sheets.filter((s) => s.sheet_data?.isArchived).length})
               </button>
               <button
                 type="button"
@@ -1055,7 +1060,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                 >
                   {filteredSheets.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.sheet_data?.isArchived ? "🔒 [Archived] " : ""}{sheetLabel(s)}
+                      {s.sheet_data?.isArchived ? "🔒 [Finalized] " : ""}{sheetLabel(s)}
                     </option>
                   ))}
                 </select>
@@ -1095,15 +1100,15 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
 
                 <button
                   type="button"
-                  onClick={toggleArchiveStatus}
+                  onClick={toggleFinalizeStatus}
                   className={`px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors ${
                     isArchived
                       ? "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 hover:bg-amber-200"
                       : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
-                  title={isArchived ? "Unarchive and reopen for editing" : "Archive and lock for history"}
+                  title={isArchived ? "Un-finalize and reopen for editing" : "Finalize and lock for stats"}
                 >
-                  {isArchived ? "🔒 Archived" : "📥 Archive Sheet"}
+                  {isArchived ? "🔒 Finalized" : "✅ Finalize Sheet"}
                 </button>
 
                 <button
@@ -1194,18 +1199,27 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
 
         {selectedSheetId && activeSheet ? (
           <>
-            {/* ── Archived Read-Only Banner ── */}
+            {/* ── Finalized Read-Only Banner ── */}
             {!gameMode && isArchived && (
               <div className="p-3 rounded-lg border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 flex flex-wrap items-center justify-between gap-2 text-xs print:hidden shadow-sm">
                 <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
                   <span className="text-sm">🔒</span>
                   <span className="font-semibold">
                     {isReadOnly
-                      ? "This game sheet is archived and in read-only mode."
-                      : "Editing unlocked for this archived sheet."}
+                      ? "This game sheet is finalized and in read-only mode."
+                      : "Editing unlocked for this finalized sheet."}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none text-amber-800 dark:text-amber-300 font-medium">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(data.excludeFromStats)}
+                      onChange={toggleExcludeFromStats}
+                      className="rounded border-amber-400"
+                    />
+                    Exclude from stats
+                  </label>
                   {isReadOnly ? (
                     <button
                       type="button"
@@ -2502,7 +2516,7 @@ export function GameSheet({ teamId, teamName = "OJ", playersPerSide = 7, teamPla
                                   ? "bg-muted/40 text-muted-foreground border-border/40 opacity-60"
                                   : "bg-background text-foreground border-border hover:border-primary hover:bg-primary/5 shadow-sm")
                           }`}
-                          title={isReadOnly ? "Archived sheet (read-only)" : isPlaced ? "Already on sheet (drag to move or reassign)" : `Click to place in Line ${selectedTargetLine} or drag to any row`}
+                          title={isReadOnly ? "Finalized sheet (read-only)" : isPlaced ? "Already on sheet (drag to move or reassign)" : `Click to place in Line ${selectedTargetLine} or drag to any row`}
                         >
                           <span className={`font-semibold ${data.injuredPlayerIds?.includes(p.id) ? "line-through text-rose-500" : ""}`}>
                             {p.display_name ?? p.id}

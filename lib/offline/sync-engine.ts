@@ -129,6 +129,7 @@ class SyncEngine {
       field?: string
       notes?: string
       isArchived?: boolean
+      excludeFromStats?: boolean
     }
   ): Promise<void> {
     const now = Date.now()

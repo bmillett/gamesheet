@@ -36,6 +36,7 @@ export interface PendingSyncAction {
     field?: string
     notes?: string
     isArchived?: boolean
+    excludeFromStats?: boolean
   }
   timestamp: number
   retryCount: number

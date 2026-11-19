@@ -79,6 +79,7 @@ export interface GameSheetData {
   halfTimeAfterPoint?: number | null
   lineDividers?: number[]
   isArchived?: boolean
+  excludeFromStats?: boolean
   customTitle?: string
   injuredPlayerIds?: string[]
   startingPossession?: "offense" | "defense"

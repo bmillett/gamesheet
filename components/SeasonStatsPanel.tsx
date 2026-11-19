@@ -108,7 +108,7 @@ function deriveGameStats(sheet: GameSheetRow): GameStats {
 }
 
 function aggregatePlayerStats(
-  sheets: GameSheetRow[],
+  sheets: GameSheetRow[], // should already be pre-filtered to finalized, non-excluded
   rosterPlayers: RosterPlayer[]
 ): PlayerSeasonStats[] {
   const statsMap = new Map<string, PlayerSeasonStats>()
@@ -256,8 +256,19 @@ function getPlayerSortValue(ps: PlayerSeasonStats, field: PlayerSortField, perGa
 }
 
 export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanelProps) {
-  const gameStats = useMemo(() => sheets.map(deriveGameStats), [sheets])
-  const playerStats = useMemo(() => aggregatePlayerStats(sheets, players), [sheets, players])
+  // All finalized sheets (isArchived). Non-finalized are excluded entirely from stats.
+  const finalizedSheets = useMemo(
+    () => sheets.filter((s) => s.sheet_data.isArchived),
+    [sheets]
+  )
+  // Finalized sheets that count toward stats (excludeFromStats === false/undefined)
+  const includedSheets = useMemo(
+    () => finalizedSheets.filter((s) => !s.sheet_data.excludeFromStats),
+    [finalizedSheets]
+  )
+
+  const gameStats = useMemo(() => finalizedSheets.map(deriveGameStats), [finalizedSheets])
+  const playerStats = useMemo(() => aggregatePlayerStats(includedSheets, players), [includedSheets, players])
   const [expandedNotePlayer, setExpandedNotePlayer] = useState<string | null>(null)
   const [statMode, setStatMode] = useState<StatDisplayMode>("totals")
   const [sortField, setSortField] = useState<PlayerSortField>("pointsPlayed")
@@ -316,17 +327,17 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
     return named
   }, [gameStats])
 
-  // Season totals (archived games only)
-  const archivedStats = gameStats.filter((gs) => gs.sheet.sheet_data.isArchived)
-  const seasonWins = archivedStats.filter((gs) => gs.ourScore > gs.theirScore).length
-  const seasonLosses = archivedStats.filter((gs) => gs.theirScore > gs.ourScore).length
-  const seasonTies = archivedStats.filter((gs) => gs.ourScore === gs.theirScore && gs.totalPoints > 0).length
-  const seasonOurScore = archivedStats.reduce((s, g) => s + g.ourScore, 0)
-  const seasonTheirScore = archivedStats.reduce((s, g) => s + g.theirScore, 0)
-  const seasonHolds = archivedStats.reduce((s, g) => s + g.ourHolds, 0)
-  const seasonBreaks = archivedStats.reduce((s, g) => s + g.ourBreaks, 0)
-  const seasonTheirOffPts = archivedStats.reduce((s, g) => s + g.ourHolds + g.theirBreaks, 0)
-  const seasonOurDefPts = archivedStats.reduce((s, g) => s + g.ourBreaks + g.theirHolds, 0)
+  // Season totals — only included (non-excluded) finalized sheets
+  const includedStats = gameStats.filter((gs) => !gs.sheet.sheet_data.excludeFromStats)
+  const seasonWins = includedStats.filter((gs) => gs.ourScore > gs.theirScore).length
+  const seasonLosses = includedStats.filter((gs) => gs.theirScore > gs.ourScore).length
+  const seasonTies = includedStats.filter((gs) => gs.ourScore === gs.theirScore && gs.totalPoints > 0).length
+  const seasonOurScore = includedStats.reduce((s, g) => s + g.ourScore, 0)
+  const seasonTheirScore = includedStats.reduce((s, g) => s + g.theirScore, 0)
+  const seasonHolds = includedStats.reduce((s, g) => s + g.ourHolds, 0)
+  const seasonBreaks = includedStats.reduce((s, g) => s + g.ourBreaks, 0)
+  const seasonTheirOffPts = includedStats.reduce((s, g) => s + g.ourHolds + g.theirBreaks, 0)
+  const seasonOurDefPts = includedStats.reduce((s, g) => s + g.ourBreaks + g.theirHolds, 0)
 
   if (sheets.length === 0) {
     return (
@@ -337,15 +348,23 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
     )
   }
 
+  if (finalizedSheets.length === 0) {
+    return (
+      <div className="py-12 text-center text-muted-foreground text-sm">
+        No finalized games yet. Finalize a game sheet to see stats here.
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 pb-8">
       {/* Page title */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">📈 Season Stats</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{teamName} — all game sheets</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{teamName} — finalized games</p>
         </div>
-        {archivedStats.length > 0 && (
+        {includedStats.length > 0 && (
           <div className="text-right">
             <div className="text-2xl font-extrabold text-foreground">
               {seasonWins}–{seasonLosses}{seasonTies > 0 ? `–${seasonTies}` : ""}
@@ -357,12 +376,13 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
 
       {/* Tournament groups */}
       {tournamentGroups.map((group) => {
-        const groupArchived = group.games.filter((g) => g.sheet.sheet_data.isArchived)
-        const gW = groupArchived.filter((g) => g.ourScore > g.theirScore).length
-        const gL = groupArchived.filter((g) => g.theirScore > g.ourScore).length
-        const gT = groupArchived.filter((g) => g.ourScore === g.theirScore && g.totalPoints > 0).length
-        const gOurTot = groupArchived.reduce((s, g) => s + g.ourScore, 0)
-        const gTheirTot = groupArchived.reduce((s, g) => s + g.theirScore, 0)
+        // For header record and subtotals: only non-excluded games count
+        const groupIncluded = group.games.filter((g) => !g.sheet.sheet_data.excludeFromStats)
+        const gW = groupIncluded.filter((g) => g.ourScore > g.theirScore).length
+        const gL = groupIncluded.filter((g) => g.theirScore > g.ourScore).length
+        const gT = groupIncluded.filter((g) => g.ourScore === g.theirScore && g.totalPoints > 0).length
+        const gOurTot = groupIncluded.reduce((s, g) => s + g.ourScore, 0)
+        const gTheirTot = groupIncluded.reduce((s, g) => s + g.theirScore, 0)
 
         return (
           <div key={group.tournamentName || "__other__"} className="rounded-xl border border-border overflow-hidden">
@@ -371,7 +391,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
               <span className="font-semibold text-sm text-foreground">
                 {group.tournamentName || "Other Games"}
               </span>
-              {groupArchived.length > 0 && (
+              {groupIncluded.length > 0 && (
                 <span className="text-xs text-muted-foreground font-medium">
                   {gW}–{gL}{gT > 0 ? `–${gT}` : ""} &nbsp;·&nbsp; {gOurTot}–{gTheirTot}
                 </span>
@@ -394,7 +414,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                 </thead>
                 <tbody>
                   {group.games.map((gs) => {
-                    const isArchived = gs.sheet.sheet_data.isArchived
+                    const isExcluded = Boolean(gs.sheet.sheet_data.excludeFromStats)
                     const isWin = gs.ourScore > gs.theirScore
                     const isLoss = gs.theirScore > gs.ourScore
                     const ourOffPts = gs.ourHolds + gs.theirBreaks
@@ -402,28 +422,23 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                     const opponentName = gs.sheet.opponent_name?.trim() || "Unknown Opponent"
 
                     return (
-                      <tr key={gs.sheet.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
+                      <tr key={gs.sheet.id} className={`border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors ${isExcluded ? "opacity-40" : ""}`}>
                         <td className="px-3 py-2 font-medium text-foreground">
                           {opponentName}
                           {gs.sheet.field && (
                             <span className="ml-1.5 text-muted-foreground font-normal">({gs.sheet.field})</span>
                           )}
-                        </td>
-                        <td className="px-3 py-2 text-center font-bold tabular-nums">
-                          {isArchived ? (
-                            <span className={isWin ? "text-emerald-600 dark:text-emerald-400" : isLoss ? "text-rose-600 dark:text-rose-400" : "text-foreground"}>
-                              {gs.ourScore}–{gs.theirScore}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">{gs.ourScore}–{gs.theirScore}</span>
+                          {isExcluded && (
+                            <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">(excluded)</span>
                           )}
                         </td>
+                        <td className="px-3 py-2 text-center font-bold tabular-nums">
+                          <span className={isWin ? "text-emerald-600 dark:text-emerald-400" : isLoss ? "text-rose-600 dark:text-rose-400" : "text-foreground"}>
+                            {gs.ourScore}–{gs.theirScore}
+                          </span>
+                        </td>
                         <td className="px-3 py-2 text-center">
-                          {!isArchived ? (
-                            <span className="px-1.5 py-0.5 rounded text-xs bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold">
-                              In Progress
-                            </span>
-                          ) : gs.totalPoints === 0 ? (
+                          {gs.totalPoints === 0 ? (
                             <span className="text-muted-foreground">—</span>
                           ) : isWin ? (
                             <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold">W</span>
@@ -441,29 +456,29 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                     )
                   })}
                 </tbody>
-                {/* Tournament subtotals (archived only) */}
-                {groupArchived.length > 1 && (
+                {/* Tournament subtotals (included games only) */}
+                {groupIncluded.length > 1 && (
                   <tfoot>
                     <tr className="border-t-2 border-border bg-muted/40 font-semibold text-foreground">
                       <td className="px-3 py-2 text-xs uppercase tracking-wide text-muted-foreground">Subtotal</td>
                       <td className="px-3 py-2 text-center tabular-nums">{gOurTot}–{gTheirTot}</td>
                       <td className="px-3 py-2 text-center">{gW}–{gL}{gT > 0 ? `–${gT}` : ""}</td>
                       <td className="px-3 py-2 text-center tabular-nums">
-                        {groupArchived.reduce((s, g) => s + g.ourHolds, 0)}
+                        {groupIncluded.reduce((s, g) => s + g.ourHolds, 0)}
                       </td>
                       <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">
                         {pct(
-                          groupArchived.reduce((s, g) => s + g.ourHolds, 0),
-                          groupArchived.reduce((s, g) => s + g.ourHolds + g.theirBreaks, 0)
+                          groupIncluded.reduce((s, g) => s + g.ourHolds, 0),
+                          groupIncluded.reduce((s, g) => s + g.ourHolds + g.theirBreaks, 0)
                         )}
                       </td>
                       <td className="px-3 py-2 text-center tabular-nums">
-                        {groupArchived.reduce((s, g) => s + g.ourBreaks, 0)}
+                        {groupIncluded.reduce((s, g) => s + g.ourBreaks, 0)}
                       </td>
                       <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">
                         {pct(
-                          groupArchived.reduce((s, g) => s + g.ourBreaks, 0),
-                          groupArchived.reduce((s, g) => s + g.ourBreaks + g.theirHolds, 0)
+                          groupIncluded.reduce((s, g) => s + g.ourBreaks, 0),
+                          groupIncluded.reduce((s, g) => s + g.ourBreaks + g.theirHolds, 0)
                         )}
                       </td>
                     </tr>
@@ -476,7 +491,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
       })}
 
       {/* Season totals */}
-      {archivedStats.length > 0 && (
+      {includedStats.length > 0 && (
         <div className="rounded-xl border-2 border-primary/30 bg-primary/5 overflow-hidden">
           <div className="px-4 py-2.5 border-b border-primary/20 bg-primary/10">
             <span className="font-bold text-sm text-foreground">Season Totals (finalized games)</span>
@@ -503,7 +518,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
           <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-2.5 bg-muted/60 border-b border-border gap-2">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm text-foreground">Player Leaderboard</span>
-              <span className="text-xs text-muted-foreground hidden sm:inline">all sheets including in-progress</span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">finalized games only</span>
             </div>
 
             {/* Totals vs Per Game toggle */}

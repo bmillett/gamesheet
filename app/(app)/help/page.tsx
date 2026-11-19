@@ -128,8 +128,8 @@ export default function HelpPage() {
             <span className="text-muted-foreground">Drag the <strong className="text-foreground">Points</strong> slider to set how many point columns are shown. 7v7: 29–40, default 30. 4v4: 30–60, default 40. The setting is saved per sheet.</span>
           </div>
           <div className="p-3 flex gap-3">
-            <span className="font-semibold text-foreground w-36 shrink-0">Archive sheet</span>
-            <span className="text-muted-foreground">Locks the sheet as read-only for historical reference. Archived sheets move to the Archived tab. You can unlock and edit them again at any time.</span>
+            <span className="font-semibold text-foreground w-36 shrink-0">Finalize sheet</span>
+            <span className="text-muted-foreground">Locks the sheet as read-only and moves it to the Finalized tab. Finalized sheets count toward stats. You can unlock and edit them again at any time, or check <strong className="text-foreground">Exclude from stats</strong> to keep the sheet visible without it affecting any counts.</span>
           </div>
         </div>
 
@@ -315,11 +315,11 @@ export default function HelpPage() {
         <div className="rounded-lg border border-border divide-y divide-border text-sm">
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Games tab</span>
-            <span className="text-muted-foreground">All games grouped by tournament. Each row shows opponent, score, W/L, holds, breaks, and hold%. Subtotals per tournament and a season totals row at the bottom. Only <strong className="text-foreground">archived</strong> sheets count toward W/L record — active sheets show as <em>In Progress</em>.</span>
+            <span className="text-muted-foreground">All finalized games grouped by tournament. Each row shows opponent, score, W/L, holds, breaks, and hold%. Subtotals per tournament and a season totals row at the bottom. Games marked <strong className="text-foreground">Exclude from stats</strong> appear greyed out and are not counted.</span>
           </div>
           <div className="p-3 flex gap-3">
             <span className="font-semibold text-foreground w-36 shrink-0">Players tab</span>
-            <span className="text-muted-foreground">Season leaderboard sorted by points played. Shows goals, assists, D-blocks, throwaways, and drops aggregated across all sheets.</span>
+            <span className="text-muted-foreground">Season leaderboard sorted by points played. Shows goals, assists, D-blocks, throwaways, and drops aggregated across finalized, non-excluded sheets.</span>
           </div>
         </div>
       </section>
