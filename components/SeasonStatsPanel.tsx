@@ -319,8 +319,11 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
     () => [...playerStats].sort((a, b) => b.dBlocks - a.dBlocks).slice(0, 3).filter((p) => p.dBlocks > 0),
     [playerStats]
   )
-  const top3Throwaways = useMemo(
-    () => [...playerStats].sort((a, b) => b.throwaways - a.throwaways).slice(0, 3).filter((p) => p.throwaways > 0),
+  const top3Turns = useMemo(
+    () => [...playerStats]
+      .sort((a, b) => (b.throwaways + b.drops) - (a.throwaways + a.drops))
+      .slice(0, 3)
+      .filter((p) => p.throwaways + p.drops > 0),
     [playerStats]
   )
 
@@ -420,21 +423,21 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
             </div>
           </div>
 
-          {/* Throwaways leaders */}
+          {/* Turns leaders (throwaways + drops) */}
           <div className="rounded-xl border border-border overflow-hidden">
             <div className="px-3 py-2 bg-muted/60 border-b border-border">
-              <span className="font-semibold text-xs text-foreground uppercase tracking-wide">💸 Throwaways</span>
+              <span className="font-semibold text-xs text-foreground uppercase tracking-wide">💸 Turns</span>
             </div>
             <div className="divide-y divide-border/50">
-              {top3Throwaways.length === 0 ? (
+              {top3Turns.length === 0 ? (
                 <p className="px-3 py-3 text-xs text-muted-foreground">No data yet</p>
-              ) : top3Throwaways.map((ps, i) => (
+              ) : top3Turns.map((ps, i) => (
                 <div key={ps.playerId} className="flex items-center justify-between px-3 py-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
                     <span className="text-xs font-medium text-foreground truncate">{ps.displayName}</span>
                   </div>
-                  <span className="text-sm font-extrabold tabular-nums text-foreground ml-2 shrink-0">{ps.throwaways}</span>
+                  <span className="text-sm font-extrabold tabular-nums text-foreground ml-2 shrink-0">{ps.throwaways + ps.drops}</span>
                 </div>
               ))}
             </div>
@@ -483,7 +486,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                     { key: "goals" as const, label: isPerGame ? "Goals/G" : isPerPoint ? "Goals/Pt" : "Goals", align: "text-center" },
                     { key: "assists" as const, label: isPerGame ? "Assists/G" : isPerPoint ? "Assists/Pt" : "Assists", align: "text-center" },
                     { key: "dBlocks" as const, label: isPerGame ? "Blocks/G" : isPerPoint ? "Blocks/Pt" : "Blocks", align: "text-center" },
-                    { key: "throwaways" as const, label: isPerGame ? "Turns/G" : isPerPoint ? "Turns/Pt" : "Turns", align: "text-center" },
+                    { key: "throwaways" as const, label: isPerGame ? "T-Aways/G" : isPerPoint ? "T-Aways/Pt" : "T-Aways", align: "text-center" },
                     { key: "drops" as const, label: isPerGame ? "Drops/G" : isPerPoint ? "Drops/Pt" : "Drops", align: "text-center" },
                   ]).map(({ key, label, align }) => {
                     const isActive = sortField === key
