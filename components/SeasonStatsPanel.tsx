@@ -235,14 +235,15 @@ function aggregatePlayerStats(
 
 type PlayerSortField = "displayName" | "gamesPlayed" | "pointsPlayed" | "plusMinus" | "totalPoints" | "goals" | "assists" | "dBlocks" | "throwaways" | "drops"
 type SortDirection = "asc" | "desc"
-type StatDisplayMode = "totals" | "perGame"
+type StatDisplayMode = "totals" | "perGame" | "perPoint"
 
-function getPlayerSortValue(ps: PlayerSeasonStats, field: PlayerSortField, perGame: boolean): number {
+function getPlayerSortValue(ps: PlayerSeasonStats, field: PlayerSortField, mode: StatDisplayMode): number {
   if (field === "displayName") return 0
   if (field === "gamesPlayed") return ps.gamesPlayed
   const raw = ps[field]
-  if (!perGame || ps.gamesPlayed === 0) return raw
-  return raw / ps.gamesPlayed
+  if (mode === "perGame") return ps.gamesPlayed === 0 ? 0 : raw / ps.gamesPlayed
+  if (mode === "perPoint") return ps.pointsPlayed === 0 ? 0 : raw / ps.pointsPlayed
+  return raw
 }
 
 export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanelProps) {
@@ -265,6 +266,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
 
   const isPerGame = statMode === "perGame"
+  const isPerPoint = statMode === "perPoint"
 
   const handleSort = (field: PlayerSortField) => {
     if (sortField === field) {
@@ -281,8 +283,8 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
       if (sortField === "displayName") {
         cmp = a.displayName.localeCompare(b.displayName)
       } else {
-        const valA = getPlayerSortValue(a, sortField, isPerGame)
-        const valB = getPlayerSortValue(b, sortField, isPerGame)
+        const valA = getPlayerSortValue(a, sortField, statMode)
+        const valB = getPlayerSortValue(b, sortField, statMode)
         cmp = valA - valB
       }
 
@@ -293,7 +295,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
 
       return sortDirection === "asc" ? cmp : -cmp
     })
-  }, [playerStats, sortField, sortDirection, isPerGame])
+  }, [playerStats, sortField, sortDirection, statMode])
 
   // Season record — from included game stats
   const seasonWins = includedGameStats.filter((gs) => gs.ourScore > gs.theirScore).length
@@ -423,30 +425,22 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
               <span className="text-xs text-muted-foreground hidden sm:inline">finalized games only</span>
             </div>
 
-            {/* Totals vs Per Game toggle */}
+            {/* Totals / Per Game / Per Point toggle */}
             <div className="flex items-center gap-1 bg-background/80 dark:bg-muted/40 p-0.5 rounded-lg border border-border text-xs self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setStatMode("totals")}
-                className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                  statMode === "totals"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Totals
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatMode("perGame")}
-                className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                  statMode === "perGame"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Per Game
-              </button>
+              {(["totals", "perGame", "perPoint"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setStatMode(mode)}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                    statMode === mode
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {mode === "totals" ? "Totals" : mode === "perGame" ? "Per Game" : "Per Point"}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -458,13 +452,13 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                     { key: "displayName" as const, label: "Player", align: "text-left" },
                     { key: "gamesPlayed" as const, label: "GP", align: "text-center" },
                     { key: "pointsPlayed" as const, label: isPerGame ? "Pts/G" : "Pts", align: "text-center" },
-                    { key: "plusMinus" as const, label: isPerGame ? "+/-/G" : "+/-", align: "text-center" },
-                    { key: "totalPoints" as const, label: isPerGame ? "G+A/G" : "G+A", align: "text-center" },
-                    { key: "goals" as const, label: isPerGame ? "Goals/G" : "Goals", align: "text-center" },
-                    { key: "assists" as const, label: isPerGame ? "Assists/G" : "Assists", align: "text-center" },
-                    { key: "dBlocks" as const, label: isPerGame ? "Blocks/G" : "Blocks", align: "text-center" },
-                    { key: "throwaways" as const, label: isPerGame ? "Turns/G" : "Turns", align: "text-center" },
-                    { key: "drops" as const, label: isPerGame ? "Drops/G" : "Drops", align: "text-center" },
+                    { key: "plusMinus" as const, label: isPerGame ? "+/-/G" : isPerPoint ? "+/-/Pt" : "+/-", align: "text-center" },
+                    { key: "totalPoints" as const, label: isPerGame ? "G+A/G" : isPerPoint ? "G+A/Pt" : "G+A", align: "text-center" },
+                    { key: "goals" as const, label: isPerGame ? "Goals/G" : isPerPoint ? "Goals/Pt" : "Goals", align: "text-center" },
+                    { key: "assists" as const, label: isPerGame ? "Assists/G" : isPerPoint ? "Assists/Pt" : "Assists", align: "text-center" },
+                    { key: "dBlocks" as const, label: isPerGame ? "Blocks/G" : isPerPoint ? "Blocks/Pt" : "Blocks", align: "text-center" },
+                    { key: "throwaways" as const, label: isPerGame ? "Turns/G" : isPerPoint ? "Turns/Pt" : "Turns", align: "text-center" },
+                    { key: "drops" as const, label: isPerGame ? "Drops/G" : isPerPoint ? "Drops/Pt" : "Drops", align: "text-center" },
                   ]).map(({ key, label, align }) => {
                     const isActive = sortField === key
                     return (
@@ -492,17 +486,25 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
                   const isExpanded = expandedNotePlayer === ps.playerId
                   const rowBg = i % 2 === 0 ? "" : "bg-muted/10"
                   const gp = ps.gamesPlayed || 1
+                  const pp = ps.pointsPlayed || 1
 
                   // Value formatters
+                  const fmt = (n: number) =>
+                    isPerGame ? (n / gp).toFixed(2) : isPerPoint ? (n / pp).toFixed(2) : String(n || "—")
                   const ptsVal = isPerGame ? (ps.pointsPlayed / gp).toFixed(1) : ps.pointsPlayed
-                  const pmRaw = isPerGame ? ps.plusMinus / gp : ps.plusMinus
-                  const pmFormatted = isPerGame ? (pmRaw > 0 ? `+${pmRaw.toFixed(1)}` : pmRaw < 0 ? pmRaw.toFixed(1) : "0.0") : (pmRaw > 0 ? `+${pmRaw}` : `${pmRaw}`)
-                  const gPlusAVal = isPerGame ? (ps.totalPoints / gp).toFixed(1) : (ps.totalPoints || "—")
-                  const goalsVal = isPerGame ? (ps.goals / gp).toFixed(1) : (ps.goals || "—")
-                  const assistsVal = isPerGame ? (ps.assists / gp).toFixed(1) : (ps.assists || "—")
-                  const dBlocksVal = isPerGame ? (ps.dBlocks / gp).toFixed(1) : (ps.dBlocks || "—")
-                  const turnsVal = isPerGame ? (ps.throwaways / gp).toFixed(1) : (ps.throwaways || "—")
-                  const dropsVal = isPerGame ? (ps.drops / gp).toFixed(1) : (ps.drops || "—")
+                  const pmRaw = isPerGame ? ps.plusMinus / gp : isPerPoint ? ps.plusMinus / pp : ps.plusMinus
+                  const pmDecimals = (isPerGame || isPerPoint) ? 2 : 0
+                  const pmFormatted = pmRaw > 0
+                    ? `+${pmRaw.toFixed(pmDecimals)}`
+                    : pmRaw < 0
+                    ? pmRaw.toFixed(pmDecimals)
+                    : (isPerGame || isPerPoint) ? "0.00" : "0"
+                  const gPlusAVal = fmt(ps.totalPoints)
+                  const goalsVal = fmt(ps.goals)
+                  const assistsVal = fmt(ps.assists)
+                  const dBlocksVal = fmt(ps.dBlocks)
+                  const turnsVal = fmt(ps.throwaways)
+                  const dropsVal = fmt(ps.drops)
 
                   return (
                     <React.Fragment key={ps.playerId}>
