@@ -297,10 +297,18 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
     })
   }, [playerStats, sortField, sortDirection, statMode])
 
-  // Season record — from included game stats
+  // Season record & totals — from included game stats
   const seasonWins = includedGameStats.filter((gs) => gs.ourScore > gs.theirScore).length
   const seasonLosses = includedGameStats.filter((gs) => gs.theirScore > gs.ourScore).length
   const seasonTies = includedGameStats.filter((gs) => gs.ourScore === gs.theirScore && gs.totalPoints > 0).length
+  const seasonOurScore = includedGameStats.reduce((s, g) => s + g.ourScore, 0)
+  const seasonTheirScore = includedGameStats.reduce((s, g) => s + g.theirScore, 0)
+  const seasonHolds = includedGameStats.reduce((s, g) => s + g.ourHolds, 0)
+  const seasonBreaks = includedGameStats.reduce((s, g) => s + g.ourBreaks, 0)
+  const seasonOurOffPts = includedGameStats.reduce((s, g) => s + g.ourHolds + g.theirBreaks, 0)
+  const seasonOurDefPts = includedGameStats.reduce((s, g) => s + g.ourBreaks + g.theirHolds, 0)
+  const holdPct = seasonOurOffPts > 0 ? Math.round((seasonHolds / seasonOurOffPts) * 100) : null
+  const breakPct = seasonOurDefPts > 0 ? Math.round((seasonBreaks / seasonOurDefPts) * 100) : null
 
   // Top-3 leader boards derived from player stats
   const top3Points = useMemo(
@@ -336,17 +344,35 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
   return (
     <div className="space-y-6 pb-8">
       {/* Page title */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">📈 Season Stats</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{teamName} — finalized games</p>
-        </div>
-        {includedGameStats.length > 0 && (
-          <div className="text-right">
-            <div className="text-2xl font-extrabold text-foreground">
-              {seasonWins}–{seasonLosses}{seasonTies > 0 ? `–${seasonTies}` : ""}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">📈 Season Stats</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">{teamName} — finalized games</p>
+          </div>
+          {includedGameStats.length > 0 && (
+            <div className="text-right">
+              <div className="text-2xl font-extrabold text-foreground tabular-nums">
+                {seasonWins}–{seasonLosses}{seasonTies > 0 ? `–${seasonTies}` : ""}
+              </div>
+              <div className="text-xs text-muted-foreground">W–L record</div>
             </div>
-            <div className="text-xs text-muted-foreground">W–L record</div>
+          )}
+        </div>
+        {/* Season summary strip */}
+        {includedGameStats.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden border border-border">
+            {[
+              { label: "Points For–Against", value: `${seasonOurScore}–${seasonTheirScore}` },
+              { label: "Games played", value: `${includedGameStats.length}` },
+              { label: `Hold% (${seasonHolds}/${seasonOurOffPts})`, value: holdPct != null ? `${holdPct}%` : "—" },
+              { label: `Break% (${seasonBreaks}/${seasonOurDefPts})`, value: breakPct != null ? `${breakPct}%` : "—" },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-card px-3 py-2.5 text-center">
+                <div className="text-base font-extrabold tabular-nums text-foreground">{value}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{label}</div>
+              </div>
+            ))}
           </div>
         )}
       </div>
