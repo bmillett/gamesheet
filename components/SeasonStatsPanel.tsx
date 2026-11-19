@@ -3,8 +3,8 @@
 /**
  * components/SeasonStatsPanel.tsx
  *
- * Read-only season/tournament stats view. Aggregates all game sheets
- * into per-tournament records and a season-wide player leaderboard.
+ * Read-only season stats view. Shows season record, top-3 leader boards,
+ * and a full sortable player leaderboard — finalized sheets only.
  */
 
 import React, { useMemo, useState } from "react"
@@ -41,11 +41,6 @@ interface PlayerSeasonStats {
   plusMinus: number // (Goals + Assists + D-Blocks) - (Turns + Drops)
   /** Notes keyed by game label (opponent / sheet title) */
   notes: { gameLabel: string; note: string }[]
-}
-
-interface TournamentGroup {
-  tournamentName: string // "" means "Other Games"
-  games: GameStats[]
 }
 
 interface SeasonStatsPanelProps {
@@ -234,11 +229,6 @@ function aggregatePlayerStats(
     .sort((a, b) => b.pointsPlayed - a.pointsPlayed || (a.jerseyNumber ?? 999) - (b.jerseyNumber ?? 999))
 }
 
-function pct(num: number, den: number): string {
-  if (den === 0) return "—"
-  return Math.round((num / den) * 100) + "%"
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -267,7 +257,7 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
     [finalizedSheets]
   )
 
-  const gameStats = useMemo(() => finalizedSheets.map(deriveGameStats), [finalizedSheets])
+  const includedGameStats = useMemo(() => includedSheets.map(deriveGameStats), [includedSheets])
   const playerStats = useMemo(() => aggregatePlayerStats(includedSheets, players), [includedSheets, players])
   const [expandedNotePlayer, setExpandedNotePlayer] = useState<string | null>(null)
   const [statMode, setStatMode] = useState<StatDisplayMode>("totals")
@@ -305,39 +295,24 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
     })
   }, [playerStats, sortField, sortDirection, isPerGame])
 
-  // Group by tournament — null / "" → "Other Games"
-  const tournamentGroups = useMemo<TournamentGroup[]>(() => {
-    const map = new Map<string, GameStats[]>()
-    gameStats.forEach((gs) => {
-      const key = gs.sheet.tournament_name?.trim() || ""
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(gs)
-    })
+  // Season record — from included game stats
+  const seasonWins = includedGameStats.filter((gs) => gs.ourScore > gs.theirScore).length
+  const seasonLosses = includedGameStats.filter((gs) => gs.theirScore > gs.ourScore).length
+  const seasonTies = includedGameStats.filter((gs) => gs.ourScore === gs.theirScore && gs.totalPoints > 0).length
 
-    // Named tournaments first (sorted), then "Other Games"
-    const named = Array.from(map.entries())
-      .filter(([k]) => k !== "")
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, games]) => ({ tournamentName: k, games }))
-
-    const other = map.get("")
-    if (other && other.length > 0) {
-      named.push({ tournamentName: "", games: other })
-    }
-    return named
-  }, [gameStats])
-
-  // Season totals — only included (non-excluded) finalized sheets
-  const includedStats = gameStats.filter((gs) => !gs.sheet.sheet_data.excludeFromStats)
-  const seasonWins = includedStats.filter((gs) => gs.ourScore > gs.theirScore).length
-  const seasonLosses = includedStats.filter((gs) => gs.theirScore > gs.ourScore).length
-  const seasonTies = includedStats.filter((gs) => gs.ourScore === gs.theirScore && gs.totalPoints > 0).length
-  const seasonOurScore = includedStats.reduce((s, g) => s + g.ourScore, 0)
-  const seasonTheirScore = includedStats.reduce((s, g) => s + g.theirScore, 0)
-  const seasonHolds = includedStats.reduce((s, g) => s + g.ourHolds, 0)
-  const seasonBreaks = includedStats.reduce((s, g) => s + g.ourBreaks, 0)
-  const seasonTheirOffPts = includedStats.reduce((s, g) => s + g.ourHolds + g.theirBreaks, 0)
-  const seasonOurDefPts = includedStats.reduce((s, g) => s + g.ourBreaks + g.theirHolds, 0)
+  // Top-3 leader boards derived from player stats
+  const top3Points = useMemo(
+    () => [...playerStats].sort((a, b) => b.totalPoints - a.totalPoints || b.goals - a.goals).slice(0, 3),
+    [playerStats]
+  )
+  const top3DBlocks = useMemo(
+    () => [...playerStats].sort((a, b) => b.dBlocks - a.dBlocks).slice(0, 3).filter((p) => p.dBlocks > 0),
+    [playerStats]
+  )
+  const top3Throwaways = useMemo(
+    () => [...playerStats].sort((a, b) => b.throwaways - a.throwaways).slice(0, 3).filter((p) => p.throwaways > 0),
+    [playerStats]
+  )
 
   if (sheets.length === 0) {
     return (
@@ -364,150 +339,77 @@ export function SeasonStatsPanel({ teamName, sheets, players }: SeasonStatsPanel
           <h1 className="text-xl font-bold text-foreground">📈 Season Stats</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{teamName} — finalized games</p>
         </div>
-        {includedStats.length > 0 && (
+        {includedGameStats.length > 0 && (
           <div className="text-right">
             <div className="text-2xl font-extrabold text-foreground">
               {seasonWins}–{seasonLosses}{seasonTies > 0 ? `–${seasonTies}` : ""}
             </div>
-            <div className="text-xs text-muted-foreground">Record (finalized games)</div>
+            <div className="text-xs text-muted-foreground">W–L record</div>
           </div>
         )}
       </div>
 
-      {/* Tournament groups */}
-      {tournamentGroups.map((group) => {
-        // For header record and subtotals: only non-excluded games count
-        const groupIncluded = group.games.filter((g) => !g.sheet.sheet_data.excludeFromStats)
-        const gW = groupIncluded.filter((g) => g.ourScore > g.theirScore).length
-        const gL = groupIncluded.filter((g) => g.theirScore > g.ourScore).length
-        const gT = groupIncluded.filter((g) => g.ourScore === g.theirScore && g.totalPoints > 0).length
-        const gOurTot = groupIncluded.reduce((s, g) => s + g.ourScore, 0)
-        const gTheirTot = groupIncluded.reduce((s, g) => s + g.theirScore, 0)
-
-        return (
-          <div key={group.tournamentName || "__other__"} className="rounded-xl border border-border overflow-hidden">
-            {/* Tournament header */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-muted/60 border-b border-border">
-              <span className="font-semibold text-sm text-foreground">
-                {group.tournamentName || "Other Games"}
-              </span>
-              {groupIncluded.length > 0 && (
-                <span className="text-xs text-muted-foreground font-medium">
-                  {gW}–{gL}{gT > 0 ? `–${gT}` : ""} &nbsp;·&nbsp; {gOurTot}–{gTheirTot}
-                </span>
-              )}
+      {/* Top-3 leader boards */}
+      {playerStats.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          {/* Points leaders (G+A) */}
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 border-b border-border">
+              <span className="font-semibold text-xs text-foreground uppercase tracking-wide">🏆 Points (G+A)</span>
             </div>
-
-            {/* Game rows */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30 text-muted-foreground uppercase tracking-wide">
-                    <th className="px-3 py-2 text-left font-semibold">Opponent</th>
-                    <th className="px-3 py-2 text-center font-semibold">Score</th>
-                    <th className="px-3 py-2 text-center font-semibold">W/L</th>
-                    <th className="px-3 py-2 text-center font-semibold">Holds</th>
-                    <th className="px-3 py-2 text-center font-semibold">Hold%</th>
-                    <th className="px-3 py-2 text-center font-semibold">Breaks</th>
-                    <th className="px-3 py-2 text-center font-semibold">Break%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.games.map((gs) => {
-                    const isExcluded = Boolean(gs.sheet.sheet_data.excludeFromStats)
-                    const isWin = gs.ourScore > gs.theirScore
-                    const isLoss = gs.theirScore > gs.ourScore
-                    const ourOffPts = gs.ourHolds + gs.theirBreaks
-                    const ourDefPts = gs.ourBreaks + gs.theirHolds
-                    const opponentName = gs.sheet.opponent_name?.trim() || "Unknown Opponent"
-
-                    return (
-                      <tr key={gs.sheet.id} className={`border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors ${isExcluded ? "opacity-40" : ""}`}>
-                        <td className="px-3 py-2 font-medium text-foreground">
-                          {opponentName}
-                          {gs.sheet.field && (
-                            <span className="ml-1.5 text-muted-foreground font-normal">({gs.sheet.field})</span>
-                          )}
-                          {isExcluded && (
-                            <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">(excluded)</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-center font-bold tabular-nums">
-                          <span className={isWin ? "text-emerald-600 dark:text-emerald-400" : isLoss ? "text-rose-600 dark:text-rose-400" : "text-foreground"}>
-                            {gs.ourScore}–{gs.theirScore}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {gs.totalPoints === 0 ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : isWin ? (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold">W</span>
-                          ) : isLoss ? (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-400 font-bold">L</span>
-                          ) : (
-                            <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-bold">T</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{gs.ourHolds}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">{pct(gs.ourHolds, ourOffPts)}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-foreground">{gs.ourBreaks}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">{pct(gs.ourBreaks, ourDefPts)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-                {/* Tournament subtotals (included games only) */}
-                {groupIncluded.length > 1 && (
-                  <tfoot>
-                    <tr className="border-t-2 border-border bg-muted/40 font-semibold text-foreground">
-                      <td className="px-3 py-2 text-xs uppercase tracking-wide text-muted-foreground">Subtotal</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{gOurTot}–{gTheirTot}</td>
-                      <td className="px-3 py-2 text-center">{gW}–{gL}{gT > 0 ? `–${gT}` : ""}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">
-                        {groupIncluded.reduce((s, g) => s + g.ourHolds, 0)}
-                      </td>
-                      <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">
-                        {pct(
-                          groupIncluded.reduce((s, g) => s + g.ourHolds, 0),
-                          groupIncluded.reduce((s, g) => s + g.ourHolds + g.theirBreaks, 0)
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center tabular-nums">
-                        {groupIncluded.reduce((s, g) => s + g.ourBreaks, 0)}
-                      </td>
-                      <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">
-                        {pct(
-                          groupIncluded.reduce((s, g) => s + g.ourBreaks, 0),
-                          groupIncluded.reduce((s, g) => s + g.ourBreaks + g.theirHolds, 0)
-                        )}
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
+            <div className="divide-y divide-border/50">
+              {top3Points.length === 0 ? (
+                <p className="px-3 py-3 text-xs text-muted-foreground">No data yet</p>
+              ) : top3Points.map((ps, i) => (
+                <div key={ps.playerId} className="flex items-center justify-between px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                    <span className="text-xs font-medium text-foreground truncate">{ps.displayName}</span>
+                  </div>
+                  <span className="text-sm font-extrabold tabular-nums text-foreground ml-2 shrink-0">{ps.totalPoints}</span>
+                </div>
+              ))}
             </div>
           </div>
-        )
-      })}
 
-      {/* Season totals */}
-      {includedStats.length > 0 && (
-        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-primary/20 bg-primary/10">
-            <span className="font-bold text-sm text-foreground">Season Totals (finalized games)</span>
+          {/* D-Block leaders */}
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 border-b border-border">
+              <span className="font-semibold text-xs text-foreground uppercase tracking-wide">🛡 D-Blocks</span>
+            </div>
+            <div className="divide-y divide-border/50">
+              {top3DBlocks.length === 0 ? (
+                <p className="px-3 py-3 text-xs text-muted-foreground">No data yet</p>
+              ) : top3DBlocks.map((ps, i) => (
+                <div key={ps.playerId} className="flex items-center justify-between px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                    <span className="text-xs font-medium text-foreground truncate">{ps.displayName}</span>
+                  </div>
+                  <span className="text-sm font-extrabold tabular-nums text-foreground ml-2 shrink-0">{ps.dBlocks}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border">
-            {[
-              { label: "Record", value: `${seasonWins}–${seasonLosses}${seasonTies > 0 ? `–${seasonTies}` : ""}` },
-              { label: "Score", value: `${seasonOurScore}–${seasonTheirScore}` },
-              { label: `Hold% (${seasonHolds} holds)`, value: pct(seasonHolds, seasonTheirOffPts) },
-              { label: `Break% (${seasonBreaks} breaks)`, value: pct(seasonBreaks, seasonOurDefPts) },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-card px-4 py-3 text-center">
-                <div className="text-lg font-extrabold text-foreground tabular-nums">{value}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
-              </div>
-            ))}
+
+          {/* Throwaways leaders */}
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 border-b border-border">
+              <span className="font-semibold text-xs text-foreground uppercase tracking-wide">💸 Throwaways</span>
+            </div>
+            <div className="divide-y divide-border/50">
+              {top3Throwaways.length === 0 ? (
+                <p className="px-3 py-3 text-xs text-muted-foreground">No data yet</p>
+              ) : top3Throwaways.map((ps, i) => (
+                <div key={ps.playerId} className="flex items-center justify-between px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                    <span className="text-xs font-medium text-foreground truncate">{ps.displayName}</span>
+                  </div>
+                  <span className="text-sm font-extrabold tabular-nums text-foreground ml-2 shrink-0">{ps.throwaways}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
